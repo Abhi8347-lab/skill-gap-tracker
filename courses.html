@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Courses &amp; Progress — SkillPath AI</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body data-page="courses">
+    <header id="app-navbar" class="app-navbar"></header>
+
+    <main class="page-shell" id="courses-main">
+      <!-- Empty state when no profile exists yet -->
+      <section id="courses-empty" class="card empty-state-card" hidden>
+        <div class="empty-icon" aria-hidden="true">🎓</div>
+        <h2>No learning plan generated yet</h2>
+        <p>
+          Complete your quick profile setup first so we can recommend courses tailored
+          to your exact missing and weak skills.
+        </p>
+        <div class="empty-actions">
+          <a href="index.html" class="btn-primary">Go to Profile Setup →</a>
+          <button type="button" id="btn-load-sample-courses" class="btn-secondary">
+            Load Sample AI/ML Profile
+          </button>
+        </div>
+      </section>
+
+      <!-- Active courses & progress dashboard -->
+      <div id="courses-content" hidden>
+        <section class="page-header-row">
+          <div>
+            <div class="hero-badge" id="courses-role-badge">Personalized Courses</div>
+            <h1 id="courses-title">Courses &amp; Learning Progress</h1>
+            <p class="page-lead" id="courses-subtitle"></p>
+          </div>
+          <div class="header-cta-group">
+            <a href="analyzer.html" class="btn-secondary">← Back to Skill Gap</a>
+            <a href="index.html" class="btn-ghost-sm">Edit Profile</a>
+          </div>
+        </section>
+
+        <!-- Simple Progress Dashboard -->
+        <section class="card dashboard-card" aria-label="Learning Progress Dashboard">
+          <div class="dashboard-top">
+            <div class="dashboard-progress-block">
+              <div class="overall-progress-top">
+                <div>
+                  <span class="mini-label">Overall Course &amp; Goal Progress</span>
+                  <h2 id="dash-headline">0% Complete</h2>
+                </div>
+                <span class="overall-pct-pill" id="dash-overall-pct">0%</span>
+              </div>
+              <div class="progress-track progress-track-lg">
+                <div class="progress-fill progress-fill-emerald" id="dash-progress-fill" style="width: 0%"></div>
+              </div>
+              <p class="overall-progress-caption" id="dash-caption"></p>
+            </div>
+
+            <div class="dashboard-stats">
+              <div class="dash-stat">
+                <span class="dash-stat-label">Completed Courses</span>
+                <strong class="dash-stat-num" id="dash-completed-courses">0 / 0</strong>
+                <span class="dash-stat-sub" id="dash-inprogress-courses">0 in progress</span>
+              </div>
+              <div class="dash-stat">
+                <span class="dash-stat-label">Remaining Skills</span>
+                <strong class="dash-stat-num" id="dash-remaining-skills">0</strong>
+                <span class="dash-stat-sub" id="dash-skill-match-live">Skill match: 0%</span>
+              </div>
+              <div class="dash-stat">
+                <span class="dash-stat-label">Est. Time Left</span>
+                <strong class="dash-stat-num" id="dash-time-left">~0 wks</strong>
+                <span class="dash-stat-sub" id="dash-hours-left">0 hrs remaining</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="skill-readiness-strip">
+            <span class="strip-label">Roadmap Skills:</span>
+            <div id="dash-skill-pills" class="dash-skill-pills"></div>
+          </div>
+        </section>
+
+        <!-- Filters Toolbar -->
+        <section class="card filter-toolbar-card">
+          <div class="filter-group">
+            <span class="filter-group-label">Show:</span>
+            <div id="view-filter-pills" class="filter-pills">
+              <button type="button" class="filter-pill is-active" data-view-filter="gap">
+                Gap &amp; Active Skills
+              </button>
+              <button type="button" class="filter-pill" data-view-filter="remaining">
+                Remaining Only
+              </button>
+              <button type="button" class="filter-pill" data-view-filter="completed">
+                Completed ✓
+              </button>
+              <button type="button" class="filter-pill" data-view-filter="all">
+                All Role Skills
+              </button>
+            </div>
+          </div>
+
+          <div class="filter-selects">
+            <label class="inline-filter-label">
+              <span>Platform</span>
+              <select id="filter-platform" class="select-compact">
+                <option value="all">All Platforms</option>
+              </select>
+            </label>
+            <label class="inline-filter-label">
+              <span>Price</span>
+              <select id="filter-price" class="select-compact">
+                <option value="all">Free &amp; Paid</option>
+                <option value="free">Free Only</option>
+                <option value="paid">Paid Only</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <!-- Course Sections Grouped by Skill in Roadmap Order -->
+        <section id="courses-groups-container" class="course-groups"></section>
+      </div>
+    </main>
+
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/page-courses.js"></script>
+  </body>
+</html>

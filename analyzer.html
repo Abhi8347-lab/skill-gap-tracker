@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Skill Gap Analyzer — SkillPath AI</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body data-page="analyzer">
+    <header id="app-navbar" class="app-navbar"></header>
+
+    <main class="page-shell" id="analyzer-main">
+      <!-- Empty state when no profile exists yet -->
+      <section id="analyzer-empty" class="card empty-state-card" hidden>
+        <div class="empty-icon" aria-hidden="true">🧭</div>
+        <h2>Complete your Profile Setup first</h2>
+        <p>
+          Tell us your target career role, current skills, and weekly learning pace
+          so we can generate your personalized skill gap analysis and roadmap.
+        </p>
+        <div class="empty-actions">
+          <a href="index.html" class="btn-primary">Go to Profile Setup →</a>
+          <button type="button" id="btn-load-sample-analyzer" class="btn-secondary">
+            Load Sample AI/ML Profile
+          </button>
+        </div>
+      </section>
+
+      <!-- Active analysis content -->
+      <div id="analyzer-content" hidden>
+        <section class="page-header-row">
+          <div>
+            <div class="hero-badge" id="analyzer-role-badge">Target Role</div>
+            <h1 id="analyzer-title">Skill Gap Analysis</h1>
+            <p class="page-lead" id="analyzer-subtitle"></p>
+          </div>
+          <div class="header-cta-group">
+            <a href="index.html" class="btn-secondary">← Edit Profile</a>
+            <a href="courses.html" class="btn-primary" id="btn-view-courses">
+              View Recommended Courses →
+            </a>
+          </div>
+        </section>
+
+        <!-- Overall Progress Bar -->
+        <section class="card overall-progress-card">
+          <div class="overall-progress-top">
+            <div>
+              <span class="mini-label">Roadmap Mastery Progress</span>
+              <h2 id="overall-progress-headline">0 of 8 target skills ready</h2>
+            </div>
+            <span class="overall-pct-pill" id="overall-progress-pct">0%</span>
+          </div>
+          <div class="progress-track progress-track-lg">
+            <div class="progress-fill progress-fill-emerald" id="overall-progress-fill" style="width: 0%"></div>
+          </div>
+          <p class="overall-progress-caption" id="overall-progress-caption"></p>
+        </section>
+
+        <!-- 4 KPI Summary Cards -->
+        <section class="kpi-grid" aria-label="Skill Gap Summary Metrics">
+          <article class="card kpi-card">
+            <span class="kpi-label">Skill Match</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value" id="kpi-match-pct">0%</span>
+              <span class="kpi-sub" id="kpi-match-sub">of required level</span>
+            </div>
+          </article>
+          <article class="card kpi-card">
+            <span class="kpi-label">Skill Breakdown</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value" id="kpi-breakdown-main">0 / 0</span>
+              <span class="kpi-sub" id="kpi-breakdown-sub">Strong · Weak · Missing</span>
+            </div>
+          </article>
+          <article class="card kpi-card">
+            <span class="kpi-label">Estimated Time to Goal</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value" id="kpi-time-weeks">~0 wks</span>
+              <span class="kpi-sub" id="kpi-time-sub">0 hrs left</span>
+            </div>
+          </article>
+          <article class="card kpi-card">
+            <span class="kpi-label">Weekly Commitment</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value" id="kpi-weekly-pace">5–10 hrs</span>
+              <span class="kpi-sub" id="kpi-exp-label">Experience pace</span>
+            </div>
+          </article>
+        </section>
+
+        <!-- AI Career Advisor Banner -->
+        <section class="card ai-insight-card" aria-label="AI Learning Recommendation">
+          <div class="ai-insight-icon" aria-hidden="true">✦</div>
+          <div class="ai-insight-body">
+            <div class="ai-mini-badge">AI Gap Insight</div>
+            <h2 id="ai-headline">Personalized AI Roadmap</h2>
+            <p id="ai-message"></p>
+          </div>
+        </section>
+
+        <!-- Two-column analytical layout: Comparison Chart + Visual Roadmap -->
+        <section class="analyzer-grid">
+          <article class="card chart-card">
+            <div class="card-header-row">
+              <div>
+                <h2>Current vs. Required Skill Levels</h2>
+                <p class="card-sub">Compare your current rating (including completed courses) against role requirements.</p>
+              </div>
+              <div class="chart-toggle" role="group" aria-label="Chart Type">
+                <button type="button" class="toggle-btn is-active" data-chart-mode="radar">Radar</button>
+                <button type="button" class="toggle-btn" data-chart-mode="bar">Bar</button>
+              </div>
+            </div>
+            <div id="skill-chart-mount" class="chart-mount"></div>
+          </article>
+
+          <article class="card roadmap-card">
+            <div class="card-header-row">
+              <div>
+                <h2>Learning Roadmap <span class="nowrap">(Step 1 → Step <span id="roadmap-step-max">8</span>)</span></h2>
+                <p class="card-sub">Ordered from foundational prerequisites to specialized mastery.</p>
+              </div>
+              <div class="status-legend-inline">
+                <span class="status-pill status-missing">Missing</span>
+                <span class="status-pill status-needs_improvement">Needs Improvement</span>
+                <span class="status-pill status-strong">Strong</span>
+              </div>
+            </div>
+
+            <ol id="visual-roadmap-list" class="roadmap-list"></ol>
+
+            <div class="roadmap-bottom-cta">
+              <p id="roadmap-cta-note"></p>
+              <a href="courses.html" class="btn-primary">View Recommended Courses →</a>
+            </div>
+          </article>
+        </section>
+      </div>
+    </main>
+
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/chart.js"></script>
+    <script src="js/page-analyzer.js"></script>
+  </body>
+</html>

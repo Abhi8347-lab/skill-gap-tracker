@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile Setup — SkillPath AI</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body data-page="profile">
+    <header id="app-navbar" class="app-navbar"></header>
+
+    <main class="page-shell">
+      <section class="hero-intro hero-compact">
+        <div class="hero-badge">AI Career &amp; Skill Gap Tracker</div>
+        <h1>Build your personalized learning path in 60 seconds</h1>
+        <p class="hero-subtitle">
+          Pick your background, target role, and current skills. No long forms —
+          just quick options and an instant AI-powered skill gap roadmap.
+        </p>
+      </section>
+
+      <section class="wizard-card card" aria-label="Profile Setup Wizard">
+        <div class="wizard-header">
+          <div class="wizard-progress-meta">
+            <span id="wizard-step-counter" class="wizard-step-counter">Step 1 of 4</span>
+            <span id="wizard-progress-pct" class="wizard-progress-pct">25%</span>
+          </div>
+          <div
+            class="progress-track"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="25"
+            id="wizard-progressbar"
+          >
+            <div class="progress-fill" id="wizard-progress-fill" style="width: 25%"></div>
+          </div>
+
+          <div class="wizard-tabs" id="wizard-tabs" role="tablist">
+            <button type="button" class="wizard-tab is-active" data-step="1">
+              <span class="tab-dot">1</span>
+              <span>About You</span>
+            </button>
+            <button type="button" class="wizard-tab" data-step="2">
+              <span class="tab-dot">2</span>
+              <span>Career Aim</span>
+            </button>
+            <button type="button" class="wizard-tab" data-step="3">
+              <span class="tab-dot">3</span>
+              <span>Skills &amp; Ratings</span>
+            </button>
+            <button type="button" class="wizard-tab" data-step="4">
+              <span class="tab-dot">4</span>
+              <span>Pace &amp; Experience</span>
+            </button>
+          </div>
+        </div>
+
+        <form id="profile-wizard-form" novalidate>
+          <!-- STEP 1: Name, Status & Conditional Background -->
+          <div class="wizard-panel is-active" data-panel="1">
+            <div class="panel-heading">
+              <h2>Tell us a little about yourself</h2>
+              <p>Only your name is typed — everything else is a quick pick.</p>
+            </div>
+
+            <div class="form-group">
+              <label for="input-name" class="field-label">Your Name <span class="req">*</span></label>
+              <input
+                type="text"
+                id="input-name"
+                name="name"
+                class="text-input"
+                placeholder="Enter your name (e.g., Alex Rivera)"
+                autocomplete="name"
+                maxlength="80"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <span class="field-label">Current Status <span class="req">*</span></span>
+              <div id="status-options" class="option-grid option-grid-3"></div>
+            </div>
+
+            <div class="form-group" id="background-group">
+              <label for="select-background" id="background-label" class="field-label">
+                What are you studying? <span class="req">*</span>
+              </label>
+              <select id="select-background" class="select-input" required></select>
+            </div>
+          </div>
+
+          <!-- STEP 2: Target Career Role -->
+          <div class="wizard-panel" data-panel="2" hidden>
+            <div class="panel-heading">
+              <h2>What is your career aim?</h2>
+              <p>Choose your target role and preview the skills our AI maps against it.</p>
+            </div>
+
+            <div class="form-group">
+              <label for="select-role" class="field-label">
+                Career Aim / Target Role <span class="req">*</span>
+              </label>
+              <select id="select-role" class="select-input" required></select>
+            </div>
+
+            <div id="role-preview-card" class="role-preview-card" aria-live="polite"></div>
+          </div>
+
+          <!-- STEP 3: Current Skills (Chips) & 1-5 Star Ratings -->
+          <div class="wizard-panel" data-panel="3" hidden>
+            <div class="panel-heading">
+              <h2>Select your current skills &amp; rate each 1–5</h2>
+              <p>
+                Tap any skills you already know, then rate your confidence. Starting from zero?
+                Just skip or choose &ldquo;Starting from scratch&rdquo;.
+              </p>
+            </div>
+
+            <div class="skill-toolbar">
+              <div id="skill-category-filters" class="filter-pills"></div>
+              <button type="button" id="btn-clear-skills" class="btn-ghost-sm">
+                Starting from scratch (0 skills)
+              </button>
+            </div>
+
+            <div id="skills-chip-grid" class="skills-chip-grid"></div>
+
+            <div class="ratings-section">
+              <div class="ratings-header">
+                <h3>Rate Your Selected Skills (1–5)</h3>
+                <span class="ratings-scale-hint">1 Basic · 3 Intermediate · 5 Expert</span>
+              </div>
+              <div id="selected-ratings-list" class="ratings-list"></div>
+            </div>
+          </div>
+
+          <!-- STEP 4: Experience & Weekly Hours -->
+          <div class="wizard-panel" data-panel="4" hidden>
+            <div class="panel-heading">
+              <h2>Experience &amp; weekly study time</h2>
+              <p>We use these to personalize your timeline and difficulty curve.</p>
+            </div>
+
+            <div class="form-group">
+              <span class="field-label">Years of Experience <span class="req">*</span></span>
+              <div id="experience-options" class="option-grid option-grid-2"></div>
+            </div>
+
+            <div class="form-group">
+              <span class="field-label">Hours per Week Available to Learn <span class="req">*</span></span>
+              <div id="hours-options" class="option-grid option-grid-2"></div>
+            </div>
+
+            <div id="wizard-summary-preview" class="summary-preview"></div>
+          </div>
+
+          <div id="wizard-error" class="form-error" role="alert" hidden></div>
+
+          <div class="wizard-footer">
+            <button type="button" id="btn-prev" class="btn-secondary" hidden>
+              ← Back
+            </button>
+            <div class="wizard-footer-spacer"></div>
+            <button type="button" id="btn-next" class="btn-primary">
+              Next →
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/page-profile.js"></script>
+  </body>
+</html>
