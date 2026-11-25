@@ -1,5 +1,5 @@
 /**
- * Page 1 Controller: Multi-step Profile Setup Wizard.
+ * Page 1 Controller: Multi-step Profile Setup Wizard + Demo Employee Loader.
  */
 (async function () {
   const Data = window.SkillPathData;
@@ -9,23 +9,32 @@
 
   const TOTAL_STEPS = 4;
 
-  const appState = await Storage.initState();
+  let appState = await Storage.initState();
 
-  const draft = {
-    name: appState.profile?.name || "",
-    status: appState.profile?.status || "student",
-    backgroundDetail:
-      appState.profile?.backgroundDetail ||
-      Data.BACKGROUND_OPTIONS.student.choices[0],
-    targetRole: appState.profile?.targetRole || Data.ROLES_CATALOG[0].id,
-    selectedSkills: Array.isArray(appState.profile?.selectedSkills)
-      ? [...appState.profile.selectedSkills]
-      : [],
-    skillRatings: { ...(appState.profile?.skillRatings || {}) },
-    experience: appState.profile?.experience || "0",
-    weeklyHours: appState.profile?.weeklyHours || "5-10",
-  };
+  function createDraftFromProfile(profile) {
+    const defaultRole =
+      Data.ROLE_MAP["ai_ml_engineer"]?.id || Data.ROLES_CATALOG[0].id;
+    return {
+      name: profile?.name || "",
+      isDemo: Boolean(profile?.isDemo),
+      status: profile?.status || "student",
+      backgroundDetail:
+        profile?.backgroundDetail || Data.BACKGROUND_OPTIONS.student.choices[0],
+      targetRole: profile?.targetRole || defaultRole,
+      companyPriority:
+        profile?.companyPriority || Data.COMPANY_PRIORITIES[0].id,
+      selectedSkills: Array.isArray(profile?.selectedSkills)
+        ? [...profile.selectedSkills]
+        : [],
+      skillRatings: { ...(profile?.skillRatings || {}) },
+      skillScores: { ...(profile?.skillScores || {}) },
+      experience: profile?.experience || "0",
+      learningSlotsPerWeek: Number(profile?.learningSlotsPerWeek || 3),
+      weeklyHours: profile?.weeklyHours || "5-10",
+    };
+  }
 
+  let draft = createDraftFromProfile(appState.profile);
   let currentStep = 1;
   let maxVisitedStep = appState.profile ? TOTAL_STEPS : 1;
   let activeSkillFilter = "all";
@@ -41,18 +50,22 @@
   const btnPrev = document.getElementById("btn-prev");
   const btnNext = document.getElementById("btn-next");
 
+  const loadDemoBtn = document.getElementById("btn-load-demo-employee");
+  const demoGoGapBtn = document.getElementById("btn-demo-go-gap");
+
   const nameInput = document.getElementById("input-name");
   const statusOptionsEl = document.getElementById("status-options");
   const backgroundLabelEl = document.getElementById("background-label");
   const backgroundSelectEl = document.getElementById("select-background");
   const roleSelectEl = document.getElementById("select-role");
+  const prioritySelectEl = document.getElementById("select-priority");
   const rolePreviewEl = document.getElementById("role-preview-card");
   const skillFiltersEl = document.getElementById("skill-category-filters");
   const skillChipsEl = document.getElementById("skills-chip-grid");
   const ratingsListEl = document.getElementById("selected-ratings-list");
   const clearSkillsBtn = document.getElementById("btn-clear-skills");
   const expOptionsEl = document.getElementById("experience-options");
-  const hoursOptionsEl = document.getElementById("hours-options");
+  const slotsOptionsEl = document.getElementById("slots-options");
   const summaryPreviewEl = document.getElementById("wizard-summary-preview");
 
   const RATING_LABELS = {
@@ -107,6 +120,7 @@
           draft.status = nextStatus;
           const bgConfig = Data.BACKGROUND_OPTIONS[nextStatus];
           draft.backgroundDetail = bgConfig.choices[0];
+          draft.isDemo = false;
           renderStatusOptions();
           renderBackgroundDropdown();
           renderSummaryPreview();
@@ -132,11 +146,17 @@
       .join("");
   }
 
-  function renderRoleSelect() {
+  function renderRoleAndPrioritySelects() {
     roleSelectEl.innerHTML = Data.ROLES_CATALOG.map(
       (role) =>
         `<option value="${escapeHtml(role.id)}" ${role.id === draft.targetRole ? "selected" : ""}>${escapeHtml(role.name)}</option>`
     ).join("");
+
+    prioritySelectEl.innerHTML = Data.COMPANY_PRIORITIES.map(
+      (p) =>
+        `<option value="${escapeHtml(p.id)}" ${p.id === draft.companyPriority ? "selected" : ""}>${escapeHtml(p.label)} — ${escapeHtml(p.description)}</option>`
+    ).join("");
+
     renderRolePreview();
   }
 
@@ -145,7 +165,14 @@
     const pills = role.skills
       .map((s) => {
         const name = Data.SKILL_MAP[s.skillId]?.name || s.skillId;
-        return `<span class="preview-skill-pill">${escapeHtml(name)} <em>(${s.required}/5)</em></span>`;
+        const targetPct =
+          s.requiredPct !== undefined ? s.requiredPct : s.required * 20;
+        const tags = Data.SKILL_PRIORITY_TAGS[s.skillId] || [];
+        const priorityMatch = tags.includes(draft.companyPriority);
+        return `<span class="preview-skill-pill ${priorityMatch ? "is-priority-pill" : ""}">
+          ${escapeHtml(name)} <em>(${targetPct}% target)</em>
+          ${priorityMatch ? `<span class="mini-priority-dot">★ Priority</span>` : ""}
+        </span>`;
       })
       .join("");
 
@@ -229,14 +256,19 @@
   }
 
   function toggleSkill(skillId) {
+    draft.isDemo = false;
     const idx = draft.selectedSkills.indexOf(skillId);
     if (idx >= 0) {
       draft.selectedSkills.splice(idx, 1);
       delete draft.skillRatings[skillId];
+      delete draft.skillScores[skillId];
     } else {
       draft.selectedSkills.push(skillId);
       if (!draft.skillRatings[skillId]) {
         draft.skillRatings[skillId] = 3;
+      }
+      if (draft.skillScores[skillId] === undefined) {
+        draft.skillScores[skillId] = draft.skillRatings[skillId] * 20;
       }
     }
     renderSkillChips();
@@ -248,8 +280,8 @@
     if (draft.selectedSkills.length === 0) {
       ratingsListEl.innerHTML = `
         <div class="ratings-empty">
-          No current skills selected yet — click any skill chips above to rate yourself 1–5,
-          or click <strong>Next</strong> to get a complete beginner roadmap from Step 1!
+          No current skills selected yet — click any skill chips above to score yourself,
+          or click <strong>Next</strong> for a complete beginner roadmap from Step 1!
         </div>
       `;
       return;
@@ -259,17 +291,24 @@
       .map((skillId) => {
         const skill = Data.SKILL_MAP[skillId];
         if (!skill) return "";
-        const val = Number(draft.skillRatings[skillId] || 3);
+        const scorePct =
+          draft.skillScores[skillId] !== undefined
+            ? Number(draft.skillScores[skillId])
+            : Number(draft.skillRatings[skillId] || 3) * 20;
+        const starVal =
+          draft.skillRatings[skillId] ||
+          Math.max(1, Math.min(5, Math.round(scorePct / 20)));
+
         const starsHtml = [1, 2, 3, 4, 5]
           .map(
             (star) => `
             <button
               type="button"
-              class="star-btn ${star <= val ? "is-filled" : ""}"
+              class="star-btn ${star <= starVal ? "is-filled" : ""}"
               data-skill-id="${escapeHtml(skillId)}"
               data-rating="${star}"
-              aria-label="Rate ${escapeHtml(skill.name)} ${star} out of 5 (${RATING_LABELS[star]})"
-              title="${star}/5 — ${RATING_LABELS[star]}"
+              aria-label="Rate ${escapeHtml(skill.name)} ${star} out of 5 (${star * 20}%)"
+              title="${star}/5 (${star * 20}%) — ${RATING_LABELS[star]}"
             >★</button>
           `
           )
@@ -279,7 +318,7 @@
           <div class="rating-row">
             <div class="rating-skill-info">
               <span class="rating-skill-name">${escapeHtml(skill.name)}</span>
-              <span class="rating-level-badge">${val}/5 · ${RATING_LABELS[val]}</span>
+              <span class="rating-level-badge">${scorePct}% · ${RATING_LABELS[starVal]}</span>
             </div>
             <div class="rating-controls">
               <div class="star-group" role="group" aria-label="Rating for ${escapeHtml(skill.name)}">
@@ -302,7 +341,9 @@
       btn.addEventListener("click", () => {
         const skillId = btn.getAttribute("data-skill-id");
         const rating = Number(btn.getAttribute("data-rating"));
+        draft.isDemo = false;
         draft.skillRatings[skillId] = rating;
+        draft.skillScores[skillId] = rating * 20;
         renderSelectedRatings();
         renderSummaryPreview();
       });
@@ -341,14 +382,15 @@
     });
   }
 
-  function renderHoursOptions() {
-    hoursOptionsEl.innerHTML = Data.WEEKLY_HOURS_OPTIONS.map((opt) => {
-      const selected = draft.weeklyHours === opt.id;
+  function renderSlotsOptions() {
+    slotsOptionsEl.innerHTML = Data.LEARNING_SLOTS_OPTIONS.map((opt) => {
+      const selected = Number(draft.learningSlotsPerWeek) === opt.slotsPerWeek;
       return `
         <button
           type="button"
           class="choice-card choice-card-compact ${selected ? "is-selected" : ""}"
-          data-hours="${escapeHtml(opt.id)}"
+          data-slots="${opt.slotsPerWeek}"
+          data-hours-id="${escapeHtml(opt.weeklyHoursId)}"
           aria-pressed="${selected}"
         >
           <span class="choice-title">${escapeHtml(opt.label)}</span>
@@ -357,10 +399,11 @@
       `;
     }).join("");
 
-    hoursOptionsEl.querySelectorAll("[data-hours]").forEach((btn) => {
+    slotsOptionsEl.querySelectorAll("[data-slots]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        draft.weeklyHours = btn.getAttribute("data-hours");
-        renderHoursOptions();
+        draft.learningSlotsPerWeek = Number(btn.getAttribute("data-slots"));
+        draft.weeklyHours = btn.getAttribute("data-hours-id");
+        renderSlotsOptions();
         renderSummaryPreview();
       });
     });
@@ -369,17 +412,23 @@
   function renderSummaryPreview() {
     const role = Data.ROLE_MAP[draft.targetRole] || Data.ROLES_CATALOG[0];
     const exp = Data.EXPERIENCE_OPTIONS.find((e) => e.id === draft.experience);
-    const hrs = Data.WEEKLY_HOURS_OPTIONS.find((h) => h.id === draft.weeklyHours);
     const displayName = draft.name.trim() || "You";
+    const demoNote = draft.isDemo
+      ? `<span class="sample-label-tag">Sample data for demonstration</span>`
+      : "";
 
     summaryPreviewEl.innerHTML = `
-      <div class="summary-preview-badge">Ready for AI Analysis</div>
+      <div class="summary-preview-top">
+        <div class="summary-preview-badge">Ready for AI Skill Gap &amp; 6-Week Plan</div>
+        ${demoNote}
+      </div>
       <p>
         <strong>${escapeHtml(displayName)}</strong> (${escapeHtml(draft.backgroundDetail)})
-        → targeting <strong>${escapeHtml(role.name)}</strong> with
-        <strong>${draft.selectedSkills.length}</strong> rated skill${draft.selectedSkills.length === 1 ? "" : "s"},
-        <strong>${escapeHtml(exp ? exp.label : "")}</strong> experience, at
-        <strong>${escapeHtml(hrs ? hrs.label : "")}</strong>.
+        → targeting <strong>${escapeHtml(role.name)}</strong> · Priority:
+        <strong>${escapeHtml(draft.companyPriority)}</strong> ·
+        <strong>${draft.selectedSkills.length}</strong> scored skill${draft.selectedSkills.length === 1 ? "" : "s"} ·
+        <strong>${escapeHtml(exp ? exp.label : "")}</strong> ·
+        <strong>${draft.learningSlotsPerWeek} learning slots/week</strong>.
       </p>
     `;
   }
@@ -396,12 +445,12 @@
         return false;
       }
     }
-    if (step === 2 && !draft.targetRole) {
-      showError("Please choose your target career role.");
+    if (step === 2 && (!draft.targetRole || !draft.companyPriority)) {
+      showError("Please choose your target role and company priority.");
       return false;
     }
-    if (step === 4 && (!draft.experience || !draft.weeklyHours)) {
-      showError("Please pick both your experience level and weekly study hours.");
+    if (step === 4 && (!draft.experience || !draft.learningSlotsPerWeek)) {
+      showError("Please pick both your experience level and weekly learning slots.");
       return false;
     }
     showError("");
@@ -447,6 +496,33 @@
     showError("");
   }
 
+  function buildCleanProfile() {
+    const cleanScores = {};
+    draft.selectedSkills.forEach((skillId) => {
+      if (draft.skillScores[skillId] !== undefined) {
+        cleanScores[skillId] = Number(draft.skillScores[skillId]);
+      } else {
+        cleanScores[skillId] = Number(draft.skillRatings[skillId] || 3) * 20;
+      }
+    });
+
+    return {
+      name: draft.name.trim(),
+      isDemo: Boolean(draft.isDemo),
+      status: draft.status,
+      backgroundDetail: draft.backgroundDetail,
+      targetRole: draft.targetRole,
+      companyPriority: draft.companyPriority,
+      companyPriorities: [draft.companyPriority],
+      learningSlotsPerWeek: Number(draft.learningSlotsPerWeek),
+      selectedSkills: draft.selectedSkills.slice(),
+      skillRatings: { ...draft.skillRatings },
+      skillScores: cleanScores,
+      experience: draft.experience,
+      weeklyHours: draft.weeklyHours,
+    };
+  }
+
   async function submitProfile() {
     if (!validateStep(1) || !validateStep(2) || !validateStep(4)) {
       return;
@@ -454,45 +530,82 @@
 
     btnNext.disabled = true;
     btnNext.textContent = "Analyzing...";
-
-    const cleanProfile = {
-      name: draft.name.trim(),
-      status: draft.status,
-      backgroundDetail: draft.backgroundDetail,
-      targetRole: draft.targetRole,
-      selectedSkills: draft.selectedSkills.slice(),
-      skillRatings: { ...draft.skillRatings },
-      experience: draft.experience,
-      weeklyHours: draft.weeklyHours,
-    };
-
-    await Storage.saveProfile(cleanProfile);
+    await Storage.saveProfile(buildCleanProfile());
     window.location.href = "analyzer.html";
   }
 
+  function renderAllWizardSections() {
+    nameInput.value = draft.name;
+    renderStatusOptions();
+    renderBackgroundDropdown();
+    renderRoleAndPrioritySelects();
+    renderSkillCategoryFilters();
+    renderSkillChips();
+    renderSelectedRatings();
+    renderExperienceOptions();
+    renderSlotsOptions();
+    renderSummaryPreview();
+  }
+
+  // Demo Employee Button Handler
+  loadDemoBtn.addEventListener("click", async () => {
+    await Storage.resetState();
+    const demoProfile = Nav.getSampleProfile();
+    appState = await Storage.saveProfile(demoProfile);
+    draft = createDraftFromProfile(demoProfile);
+    maxVisitedStep = TOTAL_STEPS;
+
+    renderAllWizardSections();
+    goToStep(4);
+
+    if (demoGoGapBtn) {
+      demoGoGapBtn.hidden = false;
+    }
+    Nav.render({
+      activePage: "profile",
+      state: appState,
+      onReset: () => window.location.reload(),
+    });
+    Nav.showToast(
+      "Loaded Demo Employee: Junior Data Analyst (SQL 80%, Power BI 40%, Statistics 55%)",
+      "success"
+    );
+  });
+
   // Bind inputs & events
-  nameInput.value = draft.name;
   nameInput.addEventListener("input", (e) => {
     draft.name = e.target.value;
+    draft.isDemo = false;
     if (draft.name.trim()) showError("");
   });
 
   backgroundSelectEl.addEventListener("change", (e) => {
     draft.backgroundDetail = e.target.value;
+    draft.isDemo = false;
     renderSummaryPreview();
   });
 
   roleSelectEl.addEventListener("change", (e) => {
     draft.targetRole = e.target.value;
+    draft.isDemo = false;
     renderRolePreview();
     renderSkillCategoryFilters();
     renderSkillChips();
     renderSummaryPreview();
   });
 
+  prioritySelectEl.addEventListener("change", (e) => {
+    draft.companyPriority = e.target.value;
+    draft.isDemo = false;
+    renderRolePreview();
+    renderSummaryPreview();
+  });
+
   clearSkillsBtn.addEventListener("click", () => {
     draft.selectedSkills = [];
     draft.skillRatings = {};
+    draft.skillScores = {};
+    draft.isDemo = false;
     renderSkillChips();
     renderSelectedRatings();
     renderSummaryPreview();
@@ -502,7 +615,10 @@
   tabsEl.querySelectorAll(".wizard-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       const target = Number(tab.getAttribute("data-step"));
-      if (target <= maxVisitedStep && (target < currentStep || validateStep(currentStep))) {
+      if (
+        target <= maxVisitedStep &&
+        (target < currentStep || validateStep(currentStep))
+      ) {
         goToStep(target);
       }
     });
@@ -527,14 +643,9 @@
     state: appState,
     onReset: () => window.location.reload(),
   });
-  renderStatusOptions();
-  renderBackgroundDropdown();
-  renderRoleSelect();
-  renderSkillCategoryFilters();
-  renderSkillChips();
-  renderSelectedRatings();
-  renderExperienceOptions();
-  renderHoursOptions();
-  renderSummaryPreview();
+  if (appState.profile?.isDemo && demoGoGapBtn) {
+    demoGoGapBtn.hidden = false;
+  }
+  renderAllWizardSections();
   goToStep(1);
 })();

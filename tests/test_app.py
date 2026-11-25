@@ -1,9 +1,6 @@
-"""Tests for Flask routes, HTML/static asset serving, and SQLite persistence."""
+"""Tests for SkillSync AI Flask routes, static serving, and AI fallback API."""
 
 from __future__ import annotations
-
-import json
-from pathlib import Path
 
 import pytest
 
@@ -11,9 +8,8 @@ from app import create_app
 
 
 @pytest.fixture()
-def client(tmp_path: Path):
-    db_file = tmp_path / "test_tracker.db"
-    app = create_app(db_path=db_file)
+def client():
+    app = create_app()
     app.config["TESTING"] = True
     with app.test_client() as test_client:
         yield test_client
@@ -48,88 +44,42 @@ def test_pages_and_assets_served(client) -> None:
         assert resp.status_code == 200, f"Expected 200 for {path}, got {resp.status_code}"
 
 
-def test_profile_and_course_progress_persistence(client) -> None:
-    initial = client.get("/api/state").get_json()
-    assert initial["profile"] is None
-    assert initial["courseProgress"] == {}
-
-    sample_profile = {
-        "name": "Priya Nair",
-        "status": "student",
-        "backgroundDetail": "Computer Science & Engineering (CSE)",
-        "targetRole": "ai_ml_engineer",
-        "selectedSkills": ["python", "git"],
-        "skillRatings": {"python": 3, "git": 4},
-        "experience": "0-1",
-        "weeklyHours": "5-10",
-    }
-
-    save_resp = client.post(
-        "/api/profile",
-        data=json.dumps(sample_profile),
-        content_type="application/json",
-    )
-    assert save_resp.status_code == 200
-    saved = save_resp.get_json()
-    assert saved["profile"]["name"] == "Priya Nair"
-
-    # Advance a course to in_progress, then completed
-    resp1 = client.post(
-        "/api/course-status",
-        json={"courseId": "cs50-python", "status": "in_progress"},
-    )
-    assert resp1.status_code == 200
-    assert resp1.get_json()["courseProgress"]["cs50-python"] == "in_progress"
-
-    resp2 = client.post(
-        "/api/course-status",
-        json={"courseId": "cs50-python", "status": "completed"},
-    )
-    assert resp2.status_code == 200
-    assert resp2.get_json()["courseProgress"]["cs50-python"] == "completed"
-
-    # Resetting course back to not_started removes key cleanly
-    resp3 = client.post(
-        "/api/course-status",
-        json={"courseId": "cs50-python", "status": "not_started"},
-    )
-    assert resp3.status_code == 200
-    assert "cs50-python" not in resp3.get_json()["courseProgress"]
-
-
-def test_invalid_inputs_rejected(client) -> None:
-    bad_status = client.post(
-        "/api/course-status",
-        json={"courseId": "cs50-python", "status": "invalid_state"},
-    )
-    assert bad_status.status_code == 400
-
-    bad_course = client.post(
-        "/api/course-status",
-        json={"courseId": "", "status": "completed"},
-    )
-    assert bad_course.status_code == 400
-
-
-def test_state_sync_and_reset(client) -> None:
-    sync_resp = client.post(
-        "/api/state",
+def test_ai_explain_fallback(client, monkeypatch) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    resp = client.post(
+        "/api/ai-explain",
         json={
-            "profile": {"name": "Sam", "targetRole": "devops_engineer"},
-            "courseProgress": {
-                "yt-docker-nana": "completed",
-                "ignored-bad": "bogus",
-                "ignored-not-started": "not_started",
-            },
+            "roleName": "Junior Data Analyst",
+            "companyPriority": "Dashboards",
+            "courses": [
+                {
+                    "courseId": "mslearn-powerbi-start",
+                    "title": "Power BI Essentials",
+                    "skillName": "Power BI",
+                    "currentPct": 40,
+                    "targetPct": 80,
+                    "isPriorityMatch": True,
+                },
+                {
+                    "courseId": "coursera-applied-stats",
+                    "title": "Applied Statistics for Data Analytics",
+                    "skillName": "Statistics",
+                    "currentPct": 55,
+                    "targetPct": 80,
+                    "isPriorityMatch": False,
+                },
+            ],
         },
     )
-    assert sync_resp.status_code == 200
-    data = sync_resp.get_json()
-    assert data["profile"]["name"] == "Sam"
-    assert data["courseProgress"] == {"yt-docker-nana": "completed"}
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["source"] == "fallback"
+    assert "40%" in data["explanations"]["mslearn-powerbi-start"]
+    assert "80%" in data["explanations"]["mslearn-powerbi-start"]
+    assert "Dashboards" in data["explanations"]["mslearn-powerbi-start"]
+    assert "55%" in data["explanations"]["coursera-applied-stats"]
 
-    reset_resp = client.delete("/api/state")
-    assert reset_resp.status_code == 200
-    cleared = reset_resp.get_json()
-    assert cleared["profile"] is None
-    assert cleared["courseProgress"] == {}
+
+def test_ai_explain_rejects_bad_payload(client) -> None:
+    resp = client.post("/api/ai-explain", data="not-json", content_type="text/plain")
+    assert resp.status_code == 400

@@ -1,6 +1,6 @@
 /**
  * Custom responsive SVG Radar Chart and Horizontal Comparison Bar Chart
- * comparing Current Skill Level vs Target Role Required Level (0-5).
+ * comparing Current Skill Percentage vs Target Role Required Percentage (0-100%).
  */
 window.SkillPathChart = (function () {
   const { escapeHtml } = window.SkillPathNav;
@@ -15,9 +15,9 @@ window.SkillPathChart = (function () {
     const width = 580;
     const height = 430;
     const cx = width / 2;
-    const cy = height / 2 + 6;
-    const radius = 136;
-    const maxVal = 5;
+    const cy = height / 2 + 8;
+    const radius = 134;
+    const maxVal = 100;
 
     function polarToCartesian(index, value) {
       const angle = -Math.PI / 2 + (index * 2 * Math.PI) / count;
@@ -29,27 +29,25 @@ window.SkillPathChart = (function () {
       };
     }
 
-    // Grid rings for levels 1..5
-    const ringsHtml = [1, 2, 3, 4, 5]
-      .map((lvl) => {
+    const ringsHtml = [20, 40, 60, 80, 100]
+      .map((pct) => {
         const pts = roadmap
           .map((_, idx) => {
-            const p = polarToCartesian(idx, lvl);
+            const p = polarToCartesian(idx, pct);
             return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
           })
           .join(" ");
         return `
           <polygon points="${pts}" class="radar-grid-ring" />
-          <text x="${cx + 4}" y="${(cy - (lvl / maxVal) * radius + 3).toFixed(1)}" class="radar-ring-label">${lvl}</text>
+          <text x="${cx + 4}" y="${(cy - (pct / maxVal) * radius + 3).toFixed(1)}" class="radar-ring-label">${pct}%</text>
         `;
       })
       .join("");
 
-    // Radial axes + skill labels
     const axesHtml = roadmap
       .map((item, idx) => {
         const end = polarToCartesian(idx, maxVal);
-        const labelPos = polarToCartesian(idx, maxVal + 1.15);
+        const labelPos = polarToCartesian(idx, maxVal + 23);
         const cos = Math.cos(end.angle);
         let anchor = "middle";
         if (cos > 0.25) anchor = "start";
@@ -73,22 +71,22 @@ window.SkillPathChart = (function () {
 
     const requiredPoints = roadmap
       .map((item, idx) => {
-        const p = polarToCartesian(idx, item.requiredLevel);
+        const p = polarToCartesian(idx, item.requiredPct);
         return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
       })
       .join(" ");
 
     const currentPoints = roadmap
       .map((item, idx) => {
-        const p = polarToCartesian(idx, item.effectiveLevel);
+        const p = polarToCartesian(idx, item.effectivePct);
         return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
       })
       .join(" ");
 
     const nodesHtml = roadmap
       .map((item, idx) => {
-        const reqP = polarToCartesian(idx, item.requiredLevel);
-        const curP = polarToCartesian(idx, item.effectiveLevel);
+        const reqP = polarToCartesian(idx, item.requiredPct);
+        const curP = polarToCartesian(idx, item.effectivePct);
         return `
           <circle
             cx="${reqP.x.toFixed(1)}"
@@ -96,16 +94,16 @@ window.SkillPathChart = (function () {
             r="4.2"
             class="radar-dot radar-dot-required"
           >
-            <title>${escapeHtml(item.skillName)} — Required: ${item.requiredLevel}/5</title>
+            <title>${escapeHtml(item.skillName)} — Target: ${item.requiredPct}%</title>
           </circle>
           <circle
             cx="${curP.x.toFixed(1)}"
             cy="${curP.y.toFixed(1)}"
-            r="5.2"
+            r="5.5"
             class="radar-dot radar-dot-current"
             data-skill-idx="${idx}"
           >
-            <title>${escapeHtml(item.skillName)} — Current: ${item.effectiveLevel}/5 vs Required: ${item.requiredLevel}/5</title>
+            <title>${escapeHtml(item.skillName)} — Current: ${item.effectivePct}% vs Target: ${item.requiredPct}%</title>
           </circle>
         `;
       })
@@ -113,7 +111,7 @@ window.SkillPathChart = (function () {
 
     container.innerHTML = `
       <div class="radar-wrapper">
-        <svg viewBox="0 0 ${width} ${height}" class="radar-svg" role="img" aria-label="Skill comparison radar chart showing current versus required levels">
+        <svg viewBox="0 0 ${width} ${height}" class="radar-svg" role="img" aria-label="Skill comparison radar chart showing current versus target percentages">
           ${ringsHtml}
           ${axesHtml}
           <polygon points="${requiredPoints}" class="radar-area-required" />
@@ -123,15 +121,15 @@ window.SkillPathChart = (function () {
         <div class="chart-legend">
           <span class="legend-item">
             <span class="legend-swatch swatch-current"></span>
-            Your Current Level
+            Current Score (%)
           </span>
           <span class="legend-item">
             <span class="legend-swatch swatch-required"></span>
-            Target Role Required
+            Target Score (%)
           </span>
         </div>
         <div id="radar-hover-readout" class="radar-readout" aria-live="polite">
-          Hover or tap any skill point to inspect exact gap numbers.
+          Hover or tap any skill point to inspect current vs. target score.
         </div>
       </div>
     `;
@@ -143,10 +141,8 @@ window.SkillPathChart = (function () {
       if (!item || !readout) return;
       const showDetails = () => {
         const gapText =
-          item.gap === 0
-            ? "Target met ✓"
-            : `Gap: ${item.gap} level${item.gap === 1 ? "" : "s"}`;
-        readout.textContent = `${item.skillName}: Current ${item.effectiveLevel}/5 vs Required ${item.requiredLevel}/5 · ${gapText}`;
+          item.gapPct === 0 ? "Target met ✓" : `Gap: ${item.gapPct}%`;
+        readout.textContent = `${item.skillName}: Current ${item.effectivePct}% vs Target ${item.requiredPct}% · ${gapText}`;
       };
       dot.addEventListener("mouseenter", showDetails);
       dot.addEventListener("click", showDetails);
@@ -156,20 +152,30 @@ window.SkillPathChart = (function () {
   function renderBarChart(container, roadmap) {
     const rowsHtml = roadmap
       .map((item) => {
-        const curPct = (item.effectiveLevel / 5) * 100;
-        const reqPct = (item.requiredLevel / 5) * 100;
+        const curPct = Math.min(100, item.effectivePct);
+        const reqPct = Math.min(100, item.requiredPct);
         const nameLabel = item.completedViaCourses
           ? `${item.skillName} ✓`
           : item.skillName;
+
+        const gapNote =
+          item.gapPct > 0
+            ? `<span class="bar-gap-tag">-${item.gapPct}% gap</span>`
+            : `<span class="bar-ok-tag">Target met ✓</span>`;
 
         return `
           <div class="bar-row">
             <div class="bar-row-meta">
               <span class="bar-skill-name">${escapeHtml(nameLabel)}</span>
-              <span class="bar-skill-nums">${item.effectiveLevel}/5 <span class="muted">vs</span> ${item.requiredLevel}/5</span>
+              <span class="bar-skill-nums">
+                <strong>${item.effectivePct}%</strong>
+                <span class="muted">vs</span>
+                ${item.requiredPct}% target
+                ${gapNote}
+              </span>
             </div>
-            <div class="bar-track" aria-label="${escapeHtml(item.skillName)}: ${item.effectiveLevel} out of ${item.requiredLevel} required">
-              <div class="bar-required-marker" style="left: ${reqPct}%" title="Required: ${item.requiredLevel}/5"></div>
+            <div class="bar-track" aria-label="${escapeHtml(item.skillName)}: ${item.effectivePct}% versus ${item.requiredPct}% target">
+              <div class="bar-required-marker" style="left: ${reqPct}%" title="Target: ${item.requiredPct}%"></div>
               <div class="bar-required-fill" style="width: ${reqPct}%"></div>
               <div class="bar-current-fill status-${item.status}" style="width: ${curPct}%"></div>
             </div>
@@ -184,11 +190,11 @@ window.SkillPathChart = (function () {
         <div class="chart-legend">
           <span class="legend-item">
             <span class="legend-swatch swatch-current"></span>
-            Your Current Level (bar)
+            Current Score (%)
           </span>
           <span class="legend-item">
             <span class="legend-swatch swatch-required"></span>
-            Target Role Required (marker & outline)
+            Target Score (%)
           </span>
         </div>
       </div>

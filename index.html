@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Profile Setup — SkillPath AI</title>
+    <title>Profile Setup — SkillSync AI</title>
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body data-page="profile">
@@ -11,12 +11,36 @@
 
     <main class="page-shell">
       <section class="hero-intro hero-compact">
-        <div class="hero-badge">AI Career &amp; Skill Gap Tracker</div>
-        <h1>Build your personalized learning path in 60 seconds</h1>
+        <div class="hero-badge">SkillSync AI · Corporate Upskilling Agent</div>
+        <h1>Build your personalized upskilling plan in 60 seconds</h1>
         <p class="hero-subtitle">
-          Pick your background, target role, and current skills. No long forms —
-          just quick options and an instant AI-powered skill gap roadmap.
+          Select your role, company priority, current skill scores, and weekly learning slots
+          for an explainable skill gap roadmap and 6-week plan.
         </p>
+      </section>
+
+      <!-- Demo Scenario Banner (Stage 1) -->
+      <section class="demo-banner card" aria-label="Quick Demo Employee Loader">
+        <div class="demo-banner-info">
+          <div class="demo-banner-badges">
+            <span class="demo-pill">AAROHAN 2.0 Quick Demo</span>
+            <span class="sample-label-tag">Sample data for demonstration</span>
+          </div>
+          <h2>Try the Junior Data Analyst corporate scenario in 1 click</h2>
+          <p>
+            Fills <strong>Junior Data Analyst</strong> · Scores:
+            <strong>SQL 80%</strong>, <strong>Power BI 40%</strong>, <strong>Statistics 55%</strong> ·
+            Priority: <strong>Dashboards</strong> · <strong>3 learning slots/week</strong>.
+          </p>
+        </div>
+        <div class="demo-banner-actions">
+          <button type="button" id="btn-load-demo-employee" class="btn-demo">
+            ✦ Load Demo Employee
+          </button>
+          <a href="analyzer.html" id="btn-demo-go-gap" class="btn-primary" hidden>
+            View Skill Gap &amp; Plan →
+          </a>
+        </div>
       </section>
 
       <section class="wizard-card card" aria-label="Profile Setup Wizard">
@@ -43,15 +67,15 @@
             </button>
             <button type="button" class="wizard-tab" data-step="2">
               <span class="tab-dot">2</span>
-              <span>Career Aim</span>
+              <span>Role &amp; Priority</span>
             </button>
             <button type="button" class="wizard-tab" data-step="3">
               <span class="tab-dot">3</span>
-              <span>Skills &amp; Ratings</span>
+              <span>Skills &amp; Scores</span>
             </button>
             <button type="button" class="wizard-tab" data-step="4">
               <span class="tab-dot">4</span>
-              <span>Pace &amp; Experience</span>
+              <span>Slots &amp; Experience</span>
             </button>
           </div>
         </div>
@@ -71,7 +95,7 @@
                 id="input-name"
                 name="name"
                 class="text-input"
-                placeholder="Enter your name (e.g., Alex Rivera)"
+                placeholder="Enter your name (e.g., Jordan Patel)"
                 autocomplete="name"
                 maxlength="80"
                 required
@@ -91,29 +115,38 @@
             </div>
           </div>
 
-          <!-- STEP 2: Target Career Role -->
+          <!-- STEP 2: Target Career Role & Company Priority -->
           <div class="wizard-panel" data-panel="2" hidden>
             <div class="panel-heading">
-              <h2>What is your career aim?</h2>
-              <p>Choose your target role and preview the skills our AI maps against it.</p>
+              <h2>Target role &amp; company priority</h2>
+              <p>Choose your role aim and the business priority your upskilling supports.</p>
             </div>
 
-            <div class="form-group">
-              <label for="select-role" class="field-label">
-                Career Aim / Target Role <span class="req">*</span>
-              </label>
-              <select id="select-role" class="select-input" required></select>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="select-role" class="field-label">
+                  Career Aim / Target Role <span class="req">*</span>
+                </label>
+                <select id="select-role" class="select-input" required></select>
+              </div>
+
+              <div class="form-group">
+                <label for="select-priority" class="field-label">
+                  Company Priority <span class="req">*</span>
+                </label>
+                <select id="select-priority" class="select-input" required></select>
+              </div>
             </div>
 
             <div id="role-preview-card" class="role-preview-card" aria-live="polite"></div>
           </div>
 
-          <!-- STEP 3: Current Skills (Chips) & 1-5 Star Ratings -->
+          <!-- STEP 3: Current Skills (Chips) & Scores -->
           <div class="wizard-panel" data-panel="3" hidden>
             <div class="panel-heading">
-              <h2>Select your current skills &amp; rate each 1–5</h2>
+              <h2>Select your current skills &amp; score each</h2>
               <p>
-                Tap any skills you already know, then rate your confidence. Starting from zero?
+                Tap skills you already use, then rate 1–5 stars (20%–100%). Starting from zero?
                 Just skip or choose &ldquo;Starting from scratch&rdquo;.
               </p>
             </div>
@@ -129,18 +162,18 @@
 
             <div class="ratings-section">
               <div class="ratings-header">
-                <h3>Rate Your Selected Skills (1–5)</h3>
-                <span class="ratings-scale-hint">1 Basic · 3 Intermediate · 5 Expert</span>
+                <h3>Rate Your Selected Skills (1–5 / %)</h3>
+                <span class="ratings-scale-hint">1 = 20% · 3 = 60% · 4 = 80% · 5 = 100%</span>
               </div>
               <div id="selected-ratings-list" class="ratings-list"></div>
             </div>
           </div>
 
-          <!-- STEP 4: Experience & Weekly Hours -->
+          <!-- STEP 4: Experience & Learning Slots -->
           <div class="wizard-panel" data-panel="4" hidden>
             <div class="panel-heading">
-              <h2>Experience &amp; weekly study time</h2>
-              <p>We use these to personalize your timeline and difficulty curve.</p>
+              <h2>Experience &amp; weekly learning slots</h2>
+              <p>SkillSync AI schedules your multi-week plan around your weekly learning slots.</p>
             </div>
 
             <div class="form-group">
@@ -149,8 +182,8 @@
             </div>
 
             <div class="form-group">
-              <span class="field-label">Hours per Week Available to Learn <span class="req">*</span></span>
-              <div id="hours-options" class="option-grid option-grid-2"></div>
+              <span class="field-label">Learning Slots per Week <span class="req">*</span></span>
+              <div id="slots-options" class="option-grid option-grid-2"></div>
             </div>
 
             <div id="wizard-summary-preview" class="summary-preview"></div>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Courses &amp; Progress — SkillPath AI</title>
+    <title>Courses &amp; Explainable Picks — SkillSync AI</title>
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body data-page="courses">
@@ -15,13 +15,13 @@
         <div class="empty-icon" aria-hidden="true">🎓</div>
         <h2>No learning plan generated yet</h2>
         <p>
-          Complete your quick profile setup first so we can recommend courses tailored
-          to your exact missing and weak skills.
+          Complete your profile setup or load the Demo Employee first so SkillSync AI can
+          recommend explainable courses tailored to your gaps and company priorities.
         </p>
         <div class="empty-actions">
           <a href="index.html" class="btn-primary">Go to Profile Setup →</a>
           <button type="button" id="btn-load-sample-courses" class="btn-secondary">
-            Load Sample AI/ML Profile
+            Load Demo Employee
           </button>
         </div>
       </section>
@@ -30,12 +30,20 @@
       <div id="courses-content" hidden>
         <section class="page-header-row">
           <div>
-            <div class="hero-badge" id="courses-role-badge">Personalized Courses</div>
+            <div class="badge-cluster">
+              <div class="hero-badge" id="courses-role-badge">Explainable Course Picks</div>
+              <span class="sample-label-tag" id="courses-demo-tag" hidden>
+                Sample data for demonstration
+              </span>
+              <span class="ai-source-pill" id="ai-source-pill">
+                ✦ AI Reasoning: Template Fallback Ready
+              </span>
+            </div>
             <h1 id="courses-title">Courses &amp; Learning Progress</h1>
             <p class="page-lead" id="courses-subtitle"></p>
           </div>
           <div class="header-cta-group">
-            <a href="analyzer.html" class="btn-secondary">← Back to Skill Gap</a>
+            <a href="analyzer.html" class="btn-secondary">← Back to Skill Gap &amp; Plan</a>
             <a href="index.html" class="btn-ghost-sm">Edit Profile</a>
           </div>
         </section>
@@ -69,9 +77,9 @@
                 <span class="dash-stat-sub" id="dash-skill-match-live">Skill match: 0%</span>
               </div>
               <div class="dash-stat">
-                <span class="dash-stat-label">Est. Time Left</span>
-                <strong class="dash-stat-num" id="dash-time-left">~0 wks</strong>
-                <span class="dash-stat-sub" id="dash-hours-left">0 hrs remaining</span>
+                <span class="dash-stat-label">Plan Pace</span>
+                <strong class="dash-stat-num" id="dash-time-left">6 wks</strong>
+                <span class="dash-stat-sub" id="dash-hours-left">3 slots/week</span>
               </div>
             </div>
           </div>

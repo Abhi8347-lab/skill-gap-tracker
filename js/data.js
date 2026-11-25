@@ -131,6 +131,115 @@ window.SkillPathData = (function () {
     },
   ];
 
+  const COMPANY_PRIORITIES = [
+    {
+      id: "Dashboards",
+      label: "Dashboards",
+      description: "Executive BI reporting, KPI visibility & Power BI adoption",
+    },
+    {
+      id: "AI Adoption",
+      label: "AI Adoption",
+      description: "Applied ML workflows, Python automation & GenAI readiness",
+    },
+    {
+      id: "Cloud Migration",
+      label: "Cloud Migration",
+      description: "Modernizing workloads onto AWS, Docker, Kubernetes & IaC",
+    },
+    {
+      id: "Cybersecurity",
+      label: "Cybersecurity",
+      description: "Threat monitoring, secure coding & zero-trust hardening",
+    },
+    {
+      id: "Data Governance",
+      label: "Data Governance",
+      description: "Reliable SQL data models, quality checks & analytics standards",
+    },
+  ];
+
+  const LEARNING_SLOTS_OPTIONS = [
+    {
+      id: "2",
+      label: "2 slots/week",
+      slotsPerWeek: 2,
+      weeklyHoursId: "2-5",
+      sublabel: "~3–4 hrs/week · Light corporate schedule",
+    },
+    {
+      id: "3",
+      label: "3 slots/week",
+      slotsPerWeek: 3,
+      weeklyHoursId: "5-10",
+      sublabel: "~5–10 hrs/week · Standard 3-session upskilling cadence",
+    },
+    {
+      id: "5",
+      label: "5 slots/week",
+      slotsPerWeek: 5,
+      weeklyHoursId: "10-20",
+      sublabel: "~10–15 hrs/week · Accelerated upskilling sprint",
+    },
+    {
+      id: "7",
+      label: "7+ slots/week",
+      slotsPerWeek: 7,
+      weeklyHoursId: "20+",
+      sublabel: "~20+ hrs/week · Intensive bootcamp focus",
+    },
+  ];
+
+  /**
+   * Maps skills to corporate priorities so priority-aligned gaps highlight cleanly.
+   */
+  const SKILL_PRIORITY_TAGS = {
+    power_bi: ["Dashboards"],
+    data_viz: ["Dashboards"],
+    streamlit: ["Dashboards", "AI Adoption"],
+    statistics: ["Dashboards", "AI Adoption"],
+    sql: ["Data Governance", "Dashboards"],
+    python: ["AI Adoption", "Data Governance"],
+    numpy_pandas: ["AI Adoption", "Data Governance"],
+    scikit_learn: ["AI Adoption"],
+    machine_learning: ["AI Adoption"],
+    deep_learning: ["AI Adoption"],
+    aws_cloud: ["Cloud Migration"],
+    docker: ["Cloud Migration"],
+    kubernetes: ["Cloud Migration"],
+    terraform: ["Cloud Migration"],
+    cicd: ["Cloud Migration"],
+    linux: ["Cloud Migration", "Cybersecurity"],
+    networking: ["Cybersecurity", "Cloud Migration"],
+    security_basics: ["Cybersecurity"],
+    ethical_hacking: ["Cybersecurity"],
+    siem_monitoring: ["Cybersecurity"],
+  };
+
+  const DEMO_EMPLOYEE_PROFILE = {
+    name: "Jordan Patel",
+    isDemo: true,
+    status: "employee",
+    backgroundDetail: "Data Analyst",
+    targetRole: "junior_data_analyst",
+    companyPriority: "Dashboards",
+    companyPriorities: ["Dashboards"],
+    learningSlotsPerWeek: 3,
+    selectedSkills: ["sql", "power_bi", "statistics"],
+    skillScores: {
+      sql: 80,
+      power_bi: 40,
+      statistics: 55,
+    },
+    skillRatings: {
+      sql: 4,
+      power_bi: 2,
+      statistics: 3,
+    },
+    experience: "0-1",
+    weeklyHours: "5-10",
+  };
+
   const SKILL_CATEGORIES = [
     "Core & Data",
     "AI & ML",
@@ -142,8 +251,9 @@ window.SkillPathData = (function () {
   const SKILLS_CATALOG = [
     { id: "python", name: "Python", category: "Core & Data" },
     { id: "sql", name: "SQL", category: "Core & Data" },
+    { id: "power_bi", name: "Power BI", category: "Core & Data" },
     { id: "git", name: "Git", category: "Core & Data" },
-    { id: "statistics", name: "Statistics & Math", category: "Core & Data" },
+    { id: "statistics", name: "Statistics", category: "Core & Data" },
     { id: "data_viz", name: "Data Visualization", category: "Core & Data" },
     { id: "numpy_pandas", name: "NumPy / Pandas", category: "AI & ML" },
     { id: "streamlit", name: "Streamlit", category: "AI & ML" },
@@ -185,6 +295,34 @@ window.SkillPathData = (function () {
    * Role skill matrices ordered explicitly from foundational Step 1 -> advanced Step N.
    */
   const ROLES_CATALOG = [
+    {
+      id: "junior_data_analyst",
+      name: "Junior Data Analyst",
+      tagline: "Turn business data into reliable SQL insights, statistical checks, and executive dashboards.",
+      skills: [
+        {
+          skillId: "power_bi",
+          required: 4,
+          requiredPct: 80,
+          estHours: 18,
+          why: "Build interactive executive dashboards, DAX KPIs, and Power Query data models aligned with Dashboards priority.",
+        },
+        {
+          skillId: "statistics",
+          required: 4,
+          requiredPct: 80,
+          estHours: 14,
+          why: "Validate trends, distributions, confidence intervals, and A/B comparisons before publishing insights.",
+        },
+        {
+          skillId: "sql",
+          required: 4,
+          requiredPct: 80,
+          estHours: 16,
+          why: "Query, join, and aggregate warehouse tables cleanly to feed analytical dashboards.",
+        },
+      ],
+    },
     {
       id: "ai_ml_engineer",
       name: "AI/ML Engineer",
@@ -749,30 +887,81 @@ window.SkillPathData = (function () {
         url: "https://www.youtube.com/watch?v=RGOj5yH7evk",
       },
     ],
-    statistics: [
+    power_bi: [
       {
-        id: "edx-harvard-prob",
-        skillId: "statistics",
-        title: "Data Science: Probability & Statistics",
-        platform: "edX",
-        level: "Intermediate",
-        duration: "16 hours",
-        durationHours: 16,
+        id: "mslearn-powerbi-start",
+        skillId: "power_bi",
+        title: "Power BI Essentials: Get Started Building with Power BI",
+        platform: "Microsoft Learn",
+        level: "Beginner",
+        duration: "6 hours",
+        durationHours: 6,
         isFree: true,
         tier: "foundation",
-        url: "https://www.edx.org/learn/probability/harvard-university-data-science-probability",
+        url: "https://learn.microsoft.com/training/paths/get-started-with-power-bi/",
       },
       {
-        id: "coursera-math-ml",
-        skillId: "statistics",
-        title: "Mathematics for Machine Learning and Data Science",
+        id: "mslearn-powerbi-dashboards",
+        skillId: "power_bi",
+        title: "Mini Dashboard Project: Create Executive Dashboards in Power BI",
+        platform: "Microsoft Learn",
+        level: "Intermediate",
+        duration: "4 hours",
+        durationHours: 4,
+        isFree: true,
+        tier: "applied",
+        isCapstone: true,
+        url: "https://learn.microsoft.com/training/modules/create-dashboards-power-bi/",
+      },
+      {
+        id: "coursera-powerbi-analyst",
+        skillId: "power_bi",
+        title: "Microsoft Power BI Data Analyst Professional Certificate",
         platform: "Coursera",
         level: "Intermediate",
-        duration: "20 hours",
-        durationHours: 20,
+        duration: "14 hours",
+        durationHours: 14,
         isFree: false,
         tier: "applied",
-        url: "https://www.coursera.org/specializations/mathematics-for-machine-learning-and-data-science",
+        url: "https://www.coursera.org/professional-certificates/microsoft-power-bi-data-analyst",
+      },
+    ],
+    statistics: [
+      {
+        id: "coursera-applied-stats",
+        skillId: "statistics",
+        title: "Applied Statistics for Data Analytics",
+        platform: "Coursera",
+        level: "Intermediate",
+        duration: "10 hours",
+        durationHours: 10,
+        isFree: false,
+        tier: "applied",
+        url: "https://www.coursera.org/projects/applied-statistics-for-data-analytics",
+      },
+      {
+        id: "khan-stats-probability",
+        skillId: "statistics",
+        title: "Statistics and Probability Foundations",
+        platform: "Khan Academy",
+        level: "Beginner",
+        duration: "12 hours",
+        durationHours: 12,
+        isFree: true,
+        tier: "foundation",
+        url: "https://www.khanacademy.org/math/statistics-probability",
+      },
+      {
+        id: "coursera-intro-stats",
+        skillId: "statistics",
+        title: "Introduction to Statistics: Data & Uncertainty",
+        platform: "Coursera",
+        level: "Intermediate",
+        duration: "14 hours",
+        durationHours: 14,
+        isFree: false,
+        tier: "foundation",
+        url: "https://www.coursera.org/learn/introduction-to-statistics",
       },
     ],
     data_viz: [
@@ -1208,6 +1397,10 @@ window.SkillPathData = (function () {
     BACKGROUND_OPTIONS,
     EXPERIENCE_OPTIONS,
     WEEKLY_HOURS_OPTIONS,
+    COMPANY_PRIORITIES,
+    LEARNING_SLOTS_OPTIONS,
+    SKILL_PRIORITY_TAGS,
+    DEMO_EMPLOYEE_PROFILE,
     SKILL_CATEGORIES,
     SKILLS_CATALOG,
     SKILL_MAP,

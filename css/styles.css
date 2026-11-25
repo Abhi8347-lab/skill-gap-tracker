@@ -2065,3 +2065,334 @@ select:focus-visible {
 .nowrap {
   white-space: nowrap;
 }
+
+/* ==========================================================================
+   SkillSync AI Stage 1 Enhancements: Vibrant Cards, Demo Banner, 6-Week Plan,
+   Explainable "Why this course?" Boxes & Platform Badges
+   ========================================================================== */
+
+.badge-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sample-label-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.demo-nav-chip {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ai-source-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: #eef2ff;
+  color: var(--primary);
+  border: 1px solid #c7d2fe;
+}
+
+.demo-banner {
+  max-width: 820px;
+  margin: 0 auto 22px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  background: linear-gradient(135deg, #eef2ff 0%, #ecfeff 60%, #f0fdf4 100%);
+  border: 1.5px solid #a5b4fc;
+  box-shadow: var(--shadow-md);
+  animation: fadeSlideIn 0.35s ease;
+}
+
+.demo-banner-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.demo-pill {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #4f46e5, #0ea5e9);
+  color: #ffffff;
+}
+
+.demo-banner-info h2 {
+  margin: 0 0 4px;
+  font-size: 1.12rem;
+}
+
+.demo-banner-info p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.demo-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-demo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 11px;
+  border: none;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-demo:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.32);
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.summary-preview-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.is-priority-pill {
+  border-color: #a5b4fc;
+  background: #eef2ff;
+}
+
+.mini-priority-dot {
+  margin-left: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4f46e5;
+}
+
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #eef2ff, #e0f2fe);
+  color: #3730a3;
+  border: 1px solid #a5b4fc;
+}
+
+/* 6-Week Upskilling Plan */
+.plan-section-card {
+  padding: 24px;
+  margin-bottom: 20px;
+  border-color: #c7d2fe;
+}
+
+.six-week-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.plan-week-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: linear-gradient(180deg, #fcfdff, #ffffff);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.plan-week-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.plan-week-card.status-border-strong {
+  border-color: var(--strong-border);
+  background: #f8fffc;
+}
+
+.plan-week-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.week-pill {
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.plan-week-card h3 {
+  margin: 4px 0 0;
+  font-size: 1.08rem;
+}
+
+.plan-week-target {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.plan-week-desc {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.plan-week-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.slots-chip {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.bar-gap-tag {
+  margin-left: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--warn-fg);
+}
+
+.bar-ok-tag {
+  margin-left: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--strong-fg);
+}
+
+/* Explainable "Why this course?" Callout */
+.course-badge-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.capstone-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.course-why-box {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f5f7ff, #f0f9ff);
+  border: 1px solid #dbeafe;
+}
+
+.course-why-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--primary);
+  margin-bottom: 3px;
+}
+
+.course-why-text {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.platform-microsoft-learn {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.platform-khan-academy {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 980px) {
+  .six-week-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}

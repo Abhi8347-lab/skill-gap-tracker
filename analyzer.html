@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Skill Gap Analyzer — SkillPath AI</title>
+    <title>Skill Gap &amp; 6-Week Plan — SkillSync AI</title>
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body data-page="analyzer">
@@ -15,13 +15,13 @@
         <div class="empty-icon" aria-hidden="true">🧭</div>
         <h2>Complete your Profile Setup first</h2>
         <p>
-          Tell us your target career role, current skills, and weekly learning pace
-          so we can generate your personalized skill gap analysis and roadmap.
+          Tell us your target role, company priority, and current skill scores
+          so SkillSync AI can generate your personalized skill gap analysis and 6-week plan.
         </p>
         <div class="empty-actions">
           <a href="index.html" class="btn-primary">Go to Profile Setup →</a>
           <button type="button" id="btn-load-sample-analyzer" class="btn-secondary">
-            Load Sample AI/ML Profile
+            Load Demo Employee
           </button>
         </div>
       </section>
@@ -30,7 +30,12 @@
       <div id="analyzer-content" hidden>
         <section class="page-header-row">
           <div>
-            <div class="hero-badge" id="analyzer-role-badge">Target Role</div>
+            <div class="badge-cluster">
+              <div class="hero-badge" id="analyzer-role-badge">Target Role</div>
+              <span class="sample-label-tag" id="analyzer-demo-tag" hidden>
+                Sample data for demonstration
+              </span>
+            </div>
             <h1 id="analyzer-title">Skill Gap Analysis</h1>
             <p class="page-lead" id="analyzer-subtitle"></p>
           </div>
@@ -47,7 +52,7 @@
           <div class="overall-progress-top">
             <div>
               <span class="mini-label">Roadmap Mastery Progress</span>
-              <h2 id="overall-progress-headline">0 of 8 target skills ready</h2>
+              <h2 id="overall-progress-headline">0 of 3 target skills ready</h2>
             </div>
             <span class="overall-pct-pill" id="overall-progress-pct">0%</span>
           </div>
@@ -63,28 +68,28 @@
             <span class="kpi-label">Skill Match</span>
             <div class="kpi-value-row">
               <span class="kpi-value" id="kpi-match-pct">0%</span>
-              <span class="kpi-sub" id="kpi-match-sub">of required level</span>
+              <span class="kpi-sub" id="kpi-match-sub">of required score</span>
             </div>
           </article>
           <article class="card kpi-card">
             <span class="kpi-label">Skill Breakdown</span>
             <div class="kpi-value-row">
-              <span class="kpi-value" id="kpi-breakdown-main">0 / 0</span>
+              <span class="kpi-value" id="kpi-breakdown-main">0 Strong</span>
               <span class="kpi-sub" id="kpi-breakdown-sub">Strong · Weak · Missing</span>
             </div>
           </article>
           <article class="card kpi-card">
-            <span class="kpi-label">Estimated Time to Goal</span>
+            <span class="kpi-label">Upskilling Plan</span>
             <div class="kpi-value-row">
-              <span class="kpi-value" id="kpi-time-weeks">~0 wks</span>
+              <span class="kpi-value" id="kpi-time-weeks">6 Weeks</span>
               <span class="kpi-sub" id="kpi-time-sub">0 hrs left</span>
             </div>
           </article>
           <article class="card kpi-card">
-            <span class="kpi-label">Weekly Commitment</span>
+            <span class="kpi-label">Weekly Capacity</span>
             <div class="kpi-value-row">
-              <span class="kpi-value" id="kpi-weekly-pace">5–10 hrs</span>
-              <span class="kpi-sub" id="kpi-exp-label">Experience pace</span>
+              <span class="kpi-value" id="kpi-weekly-pace">3 slots/wk</span>
+              <span class="kpi-sub" id="kpi-exp-label">Company priority</span>
             </div>
           </article>
         </section>
@@ -93,10 +98,25 @@
         <section class="card ai-insight-card" aria-label="AI Learning Recommendation">
           <div class="ai-insight-icon" aria-hidden="true">✦</div>
           <div class="ai-insight-body">
-            <div class="ai-mini-badge">AI Gap Insight</div>
-            <h2 id="ai-headline">Personalized AI Roadmap</h2>
+            <div class="ai-mini-badge">SkillSync AI Agent Insight</div>
+            <h2 id="ai-headline">Personalized Upskilling Plan</h2>
             <p id="ai-message"></p>
           </div>
+        </section>
+
+        <!-- 6-Week Upskilling Plan (Stage 1) -->
+        <section class="card plan-section-card" aria-label="6-Week Upskilling Plan">
+          <div class="card-header-row">
+            <div>
+              <div class="ai-mini-badge">6-Week Structured Plan</div>
+              <h2>Your 6-Week Upskilling Roadmap</h2>
+              <p class="card-sub" id="plan-subtitle">
+                Sequenced around your skill gaps, company priority, and weekly learning slots.
+              </p>
+            </div>
+            <a href="courses.html" class="btn-secondary">Explore Recommended Courses →</a>
+          </div>
+          <div id="six-week-plan-grid" class="six-week-grid"></div>
         </section>
 
         <!-- Two-column analytical layout: Comparison Chart + Visual Roadmap -->
@@ -104,12 +124,12 @@
           <article class="card chart-card">
             <div class="card-header-row">
               <div>
-                <h2>Current vs. Required Skill Levels</h2>
-                <p class="card-sub">Compare your current rating (including completed courses) against role requirements.</p>
+                <h2>Current vs. Target Skill Scores (%)</h2>
+                <p class="card-sub">Compare your current score against target role requirements.</p>
               </div>
               <div class="chart-toggle" role="group" aria-label="Chart Type">
-                <button type="button" class="toggle-btn is-active" data-chart-mode="radar">Radar</button>
-                <button type="button" class="toggle-btn" data-chart-mode="bar">Bar</button>
+                <button type="button" class="toggle-btn is-active" data-chart-mode="bar">Bar</button>
+                <button type="button" class="toggle-btn" data-chart-mode="radar">Radar</button>
               </div>
             </div>
             <div id="skill-chart-mount" class="chart-mount"></div>
@@ -118,8 +138,8 @@
           <article class="card roadmap-card">
             <div class="card-header-row">
               <div>
-                <h2>Learning Roadmap <span class="nowrap">(Step 1 → Step <span id="roadmap-step-max">8</span>)</span></h2>
-                <p class="card-sub">Ordered from foundational prerequisites to specialized mastery.</p>
+                <h2>Skill Gap Breakdown <span class="nowrap">(Step 1 → Step <span id="roadmap-step-max">3</span>)</span></h2>
+                <p class="card-sub">Ordered from highest priority gap to strong skills.</p>
               </div>
               <div class="status-legend-inline">
                 <span class="status-pill status-missing">Missing</span>

@@ -37,19 +37,9 @@ window.SkillPathNav = (function () {
   }
 
   function getSampleProfile() {
-    return {
-      name: "Alex Rivera",
-      status: "student",
-      backgroundDetail: "Computer Science & Engineering (CSE)",
-      targetRole: "ai_ml_engineer",
-      selectedSkills: ["git", "sql"],
-      skillRatings: {
-        git: 3,
-        sql: 2,
-      },
-      experience: "0-1",
-      weeklyHours: "5-10",
-    };
+    return JSON.parse(
+      JSON.stringify(window.SkillPathData.DEMO_EMPLOYEE_PROFILE)
+    );
   }
 
   function render({ activePage, state, onReset }) {
@@ -73,7 +63,7 @@ window.SkillPathNav = (function () {
       {
         id: "analyzer",
         num: 2,
-        label: "Skill Gap Analyzer",
+        label: "Skill Gap & Plan",
         href: "analyzer.html",
         done: Boolean(analysis && analysis.roadmapProgressPct === 100),
       },
@@ -82,14 +72,24 @@ window.SkillPathNav = (function () {
         num: 3,
         label: "Courses & Progress",
         href: "courses.html",
-        done: Boolean(analysis && analysis.overallCoursePct === 100 && analysis.totalGapCourses > 0),
+        done: Boolean(
+          analysis &&
+            analysis.overallCoursePct === 100 &&
+            analysis.totalGapCourses > 0
+        ),
       },
     ];
+
+    const demoTag =
+      profile && profile.isDemo
+        ? `<span class="demo-nav-chip" title="Sample data for demonstration">Demo</span>`
+        : "";
 
     const rolePill = analysis
       ? `<span class="nav-user-pill" title="${escapeHtml(profile.name)}">
           <span class="nav-user-dot"></span>
           <span>${escapeHtml(profile.name.split(/\s+/)[0])} · ${escapeHtml(analysis.role.name)}</span>
+          ${demoTag}
         </span>`
       : `<span class="nav-user-pill is-muted">No profile saved yet</span>`;
 
@@ -108,8 +108,8 @@ window.SkillPathNav = (function () {
             </svg>
           </span>
           <span class="brand-text">
-            <strong>SkillPath</strong>
-            <span class="brand-badge">AI</span>
+            <strong>SkillSync</strong>
+            <span class="brand-badge">AI Agent</span>
           </span>
         </a>
 
@@ -124,7 +124,8 @@ window.SkillPathNav = (function () {
               ]
                 .filter(Boolean)
                 .join(" ");
-              const badgeContent = step.done && !isActive ? "✓" : String(step.num);
+              const badgeContent =
+                step.done && !isActive ? "✓" : String(step.num);
               const connector =
                 idx < steps.length - 1
                   ? `<span class="stepper-arrow" aria-hidden="true">→</span>`

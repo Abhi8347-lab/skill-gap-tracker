@@ -1,5 +1,5 @@
 /**
- * Page 3 Controller: Recommended Courses Grouped by Roadmap Skill & Live Progress Tracker.
+ * Page 3 Controller: Explainable Recommended Courses & Live Progress Tracker.
  */
 (async function () {
   const Storage = window.SkillPathStorage;
@@ -11,6 +11,8 @@
   let viewFilter = "gap";
   let platformFilter = "all";
   let priceFilter = "all";
+  let aiExplanationCache = {};
+  let aiSourceLabel = "Template Fallback";
 
   const emptyEl = document.getElementById("courses-empty");
   const contentEl = document.getElementById("courses-content");
@@ -19,6 +21,8 @@
   const platformSelect = document.getElementById("filter-platform");
   const priceSelect = document.getElementById("filter-price");
   const viewFilterEl = document.getElementById("view-filter-pills");
+  const demoTagEl = document.getElementById("courses-demo-tag");
+  const aiSourcePillEl = document.getElementById("ai-source-pill");
 
   const STATUS_OPTIONS = [
     { id: "not_started", label: "Not Started" },
@@ -58,7 +62,6 @@
     if (viewFilter === "all") return true;
     if (viewFilter === "remaining") return step.status !== "strong";
     if (viewFilter === "completed") return step.status === "strong";
-    // Default "gap": show skills that had a gap or have active course progress
     return step.includeInCoursePlan;
   }
 
@@ -100,7 +103,7 @@
       );
       if (newlyCompleted) {
         Nav.showToast(
-          `${newlyCompleted.skillName} ✓ marked complete! Roadmap & skill match updated.`,
+          `${newlyCompleted.skillName} ✓ marked complete! Skill gap & plan updated.`,
           "success"
         );
       } else if (nextStatus === "completed") {
@@ -110,12 +113,19 @@
   }
 
   function renderDashboard(analysis) {
+    if (demoTagEl) {
+      demoTagEl.hidden = !appState.profile.isDemo;
+    }
+    if (aiSourcePillEl) {
+      aiSourcePillEl.textContent = `✦ AI Reasoning: ${aiSourceLabel}`;
+    }
+
     document.getElementById("courses-role-badge").textContent =
-      `Learning Path · ${analysis.role.name}`;
+      `Explainable Picks · ${analysis.role.name}`;
     document.getElementById("courses-title").textContent =
       `Recommended Courses for ${analysis.role.name}`;
     document.getElementById("courses-subtitle").textContent =
-      `Grouped in roadmap order for ${appState.profile.name}. Update course statuses to check off skills and update your live skill gap.`;
+      `Grouped in roadmap order for ${appState.profile.name}. Every course explains why SkillSync AI picked it.`;
 
     const pct = analysis.overallCoursePct;
     document.getElementById("dash-headline").textContent =
@@ -127,7 +137,7 @@
 
     document.getElementById("dash-caption").textContent =
       analysis.remainingSkills.length === 0
-        ? `🎉 Amazing work! Every skill for ${analysis.role.name} is now Strong / Completed ✓.`
+        ? `🎉 Amazing work! Every skill for ${analysis.role.name} meets target proficiency ✓.`
         : `${analysis.masteredSkillsCount} of ${analysis.totalSkillsCount} roadmap skills ready · ${analysis.remainingSkills.length} skill${analysis.remainingSkills.length === 1 ? "" : "s"} remaining.`;
 
     document.getElementById("dash-completed-courses").textContent =
@@ -144,16 +154,18 @@
     document.getElementById("dash-time-left").textContent =
       analysis.estimatedWeeks === 0
         ? "Done ✓"
-        : `~${analysis.estimatedWeeks} wks`;
+        : `${analysis.estimatedWeeks} wks`;
     document.getElementById("dash-hours-left").textContent =
-      `${analysis.totalRemainingHours} hrs left (${analysis.hoursOption.label})`;
+      `${analysis.slotsPerWeek} slots/week · ${analysis.totalRemainingHours} hrs left`;
 
     // Skill readiness pill strip
     const pillsEl = document.getElementById("dash-skill-pills");
     pillsEl.innerHTML = analysis.roadmap
       .map((step) => {
         const isDone = step.status === "strong";
-        const label = isDone ? `${step.skillName} ✓` : step.skillName;
+        const label = isDone
+          ? `${step.skillName} ✓ (${step.effectivePct}%)`
+          : `${step.skillName} (${step.effectivePct}%)`;
         return `
           <a
             href="#skill-${escapeHtml(step.skillId)}"
@@ -171,7 +183,7 @@
     if (visibleSteps.length === 0) {
       const emptyMsg =
         viewFilter === "gap" && analysis.totalGapCourses === 0
-          ? "You already rated every required skill as Strong! Switch to 'All Role Skills' above if you want bonus courses."
+          ? "You already meet target scores for every required skill! Switch to 'All Role Skills' above for optional refreshers."
           : "No skill sections match the selected filters.";
 
       groupsContainer.innerHTML = `
@@ -185,18 +197,26 @@
     const htmlSections = visibleSteps
       .map((step) => {
         const filteredCourses = step.courses.filter(matchesCourseFilters);
-        if (filteredCourses.length === 0 && (platformFilter !== "all" || priceFilter !== "all")) {
+        if (
+          filteredCourses.length === 0 &&
+          (platformFilter !== "all" || priceFilter !== "all")
+        ) {
           return "";
         }
 
         const isDone = step.status === "strong";
         const headingName = isDone ? `${step.skillName} ✓` : step.skillName;
+        const priorityChip = step.isPriorityMatch
+          ? `<span class="priority-badge">★ Priority: ${escapeHtml(step.matchedPriorities[0])}</span>`
+          : "";
 
         const cardsHtml = filteredCourses
           .map((course) => {
             const pSlug = platformSlug(course.platform);
             const priceLabel = course.isFree ? "Free" : "Paid";
             const priceClass = course.isFree ? "badge-free" : "badge-paid";
+            const whyLine =
+              aiExplanationCache[course.id] || course.whyRecommended;
 
             const statusButtons = STATUS_OPTIONS.map((opt) => {
               const active = course.status === opt.id;
@@ -216,10 +236,18 @@
               <article class="course-card state-${course.status}">
                 <div class="course-card-top">
                   <span class="platform-badge platform-${escapeHtml(pSlug)}">${escapeHtml(course.platform)}</span>
-                  <span class="price-badge ${priceClass}">${priceLabel}</span>
+                  <div class="course-badge-right">
+                    ${course.isCapstone ? `<span class="capstone-badge">Week 6 Project</span>` : ""}
+                    <span class="price-badge ${priceClass}">${priceLabel}</span>
+                  </div>
                 </div>
 
                 <h3 class="course-title">${escapeHtml(course.title)}</h3>
+
+                <div class="course-why-box">
+                  <span class="course-why-label">✦ Why this course?</span>
+                  <p class="course-why-text">${escapeHtml(whyLine)}</p>
+                </div>
 
                 <div class="course-meta-row">
                   <span class="course-meta-chip">
@@ -261,12 +289,13 @@
                 </span>
                 <div>
                   <div class="skill-group-kicker">
-                    Step ${step.stepNumber} · Level ${step.effectiveLevel}/${step.requiredLevel} required
+                    Step ${step.stepNumber} · Score ${step.effectivePct}% / ${step.requiredPct}% target
                   </div>
                   <h2 class="skill-group-title">${escapeHtml(headingName)}</h2>
                 </div>
               </div>
               <div class="skill-group-badges">
+                ${priorityChip}
                 <span class="course-count-chip">
                   ${step.coursesCompleted}/${step.coursesTotal} courses completed
                 </span>
@@ -296,7 +325,6 @@
 
     groupsContainer.innerHTML = htmlSections;
 
-    // Bind status toggle buttons
     groupsContainer.querySelectorAll(".status-seg-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         const courseId = btn.getAttribute("data-course-id");
@@ -306,12 +334,11 @@
       });
     });
 
-    // Clicking "Start Course" opens external course & gently marks Not Started -> In Progress
     groupsContainer.querySelectorAll(".btn-start-course").forEach((link) => {
       link.addEventListener("click", () => {
         const courseId = link.getAttribute("data-start-course-id");
         const currentStatus = link.getAttribute("data-start-status");
-        const skillName = link.getAttribute("data-skill-name");
+        const skillName = link.getAttribute("data-start-name") || link.getAttribute("data-skill-name");
         if (currentStatus === "not_started") {
           handleStatusChange(courseId, "in_progress", skillName);
         }
@@ -319,12 +346,24 @@
     });
   }
 
-  function renderPage() {
+  async function refreshAiExplanations(analysis) {
+    const res = await Engine.fetchAiExplanations(appState.profile, analysis);
+    if (res && res.explanations) {
+      aiExplanationCache = res.explanations;
+      aiSourceLabel =
+        res.source === "ai" ? "Live AI API" : "Built-in Template Fallback";
+      renderDashboard(analysis);
+      renderCourseGroups(analysis);
+    }
+  }
+
+  function renderPage(triggerAiRefresh = false) {
     Nav.render({
       activePage: "courses",
       state: appState,
       onReset: () => {
         appState = { profile: null, courseProgress: {}, updatedAt: null };
+        aiExplanationCache = {};
         renderPage();
       },
     });
@@ -351,6 +390,10 @@
     populatePlatformFilter(analysis.roadmap);
     renderDashboard(analysis);
     renderCourseGroups(analysis);
+
+    if (triggerAiRefresh) {
+      refreshAiExplanations(analysis);
+    }
   }
 
   // Filter event bindings
@@ -376,12 +419,13 @@
 
   if (loadSampleBtn) {
     loadSampleBtn.addEventListener("click", async () => {
+      await Storage.resetState();
       const sample = Nav.getSampleProfile();
       appState = await Storage.saveProfile(sample);
-      Nav.showToast("Loaded sample AI/ML Engineer profile!", "success");
-      renderPage();
+      Nav.showToast("Loaded Demo Employee: Junior Data Analyst!", "success");
+      renderPage(true);
     });
   }
 
-  renderPage();
+  renderPage(true);
 })();

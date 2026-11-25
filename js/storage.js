@@ -1,28 +1,33 @@
 /**
- * Hybrid persistence layer: writes synchronously to localStorage and syncs
- * with Flask SQLite API endpoints when served over HTTP(S).
+ * Browser localStorage persistence layer for SkillSync AI.
+ * Stores all user profile data, skill scores, and course progress strictly
+ * in localStorage (no server files or local databases).
  */
 window.SkillPathStorage = (function () {
-  const STORAGE_KEY = "skillpath_ai_state_v1";
-
-  function isHttpOrigin() {
-    return (
-      window.location.protocol === "http:" ||
-      window.location.protocol === "https:"
-    );
-  }
+  const STORAGE_KEY = "skillsync_ai_state_v1";
+  const LEGACY_KEY = "skillpath_ai_state_v1";
 
   function readLocal() {
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
+      let raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        const legacyRaw = window.localStorage.getItem(LEGACY_KEY);
+        if (legacyRaw) {
+          raw = legacyRaw;
+          window.localStorage.setItem(STORAGE_KEY, legacyRaw);
+        }
+      }
       if (!raw) {
         return { profile: null, courseProgress: {}, updatedAt: null };
       }
       const parsed = JSON.parse(raw);
       return {
-        profile: parsed && typeof parsed.profile === "object" ? parsed.profile : null,
+        profile:
+          parsed && typeof parsed.profile === "object" ? parsed.profile : null,
         courseProgress:
-          parsed && parsed.courseProgress && typeof parsed.courseProgress === "object"
+          parsed &&
+          parsed.courseProgress &&
+          typeof parsed.courseProgress === "object"
             ? parsed.courseProgress
             : {},
         updatedAt: parsed && parsed.updatedAt ? parsed.updatedAt : null,
@@ -33,89 +38,30 @@ window.SkillPathStorage = (function () {
   }
 
   function writeLocal(state) {
+    const payload = {
+      profile: state.profile || null,
+      courseProgress: state.courseProgress || {},
+      updatedAt: state.updatedAt || new Date().toISOString(),
+    };
     try {
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          profile: state.profile || null,
-          courseProgress: state.courseProgress || {},
-          updatedAt: state.updatedAt || new Date().toISOString(),
-        })
-      );
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (_err) {
       // Ignore storage quota errors in restricted environments.
     }
-  }
-
-  async function apiRequest(url, options) {
-    if (!isHttpOrigin()) return null;
-    try {
-      const resp = await window.fetch(url, {
-        headers: { "Content-Type": "application/json" },
-        ...options,
-      });
-      if (!resp.ok) return null;
-      return await resp.json();
-    } catch (_err) {
-      return null;
-    }
+    return payload;
   }
 
   async function initState() {
-    const local = readLocal();
-    const remote = await apiRequest("/api/state", { method: "GET" });
-    if (!remote) return local;
-
-    const remoteHasData = Boolean(
-      remote.profile ||
-        (remote.courseProgress && Object.keys(remote.courseProgress).length > 0)
-    );
-    const localHasData = Boolean(
-      local.profile ||
-        (local.courseProgress && Object.keys(local.courseProgress).length > 0)
-    );
-
-    if (remoteHasData && !localHasData) {
-      writeLocal(remote);
-      return remote;
-    }
-
-    if (localHasData && !remoteHasData) {
-      await apiRequest("/api/state", {
-        method: "POST",
-        body: JSON.stringify(local),
-      });
-      return local;
-    }
-
-    if (remoteHasData && localHasData && remote.updatedAt && local.updatedAt) {
-      if (new Date(remote.updatedAt) > new Date(local.updatedAt)) {
-        writeLocal(remote);
-        return remote;
-      }
-    }
-
-    return local;
+    return readLocal();
   }
 
   async function saveProfile(profile) {
     const local = readLocal();
-    const nextState = {
+    return writeLocal({
       profile,
       courseProgress: local.courseProgress || {},
       updatedAt: new Date().toISOString(),
-    };
-    writeLocal(nextState);
-
-    const synced = await apiRequest("/api/profile", {
-      method: "POST",
-      body: JSON.stringify(profile),
     });
-    if (synced) {
-      writeLocal(synced);
-      return synced;
-    }
-    return nextState;
   }
 
   async function setCourseStatus(courseId, status) {
@@ -126,33 +72,21 @@ window.SkillPathStorage = (function () {
     } else {
       progress[courseId] = status;
     }
-    const nextState = {
+    return writeLocal({
       profile: local.profile,
       courseProgress: progress,
       updatedAt: new Date().toISOString(),
-    };
-    writeLocal(nextState);
-
-    const synced = await apiRequest("/api/course-status", {
-      method: "POST",
-      body: JSON.stringify({ courseId, status }),
     });
-    if (synced) {
-      writeLocal(synced);
-      return synced;
-    }
-    return nextState;
   }
 
   async function resetState() {
-    const empty = { profile: null, courseProgress: {}, updatedAt: null };
     try {
       window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(LEGACY_KEY);
     } catch (_err) {
       // Ignore storage removal errors.
     }
-    await apiRequest("/api/state", { method: "DELETE" });
-    return empty;
+    return { profile: null, courseProgress: {}, updatedAt: null };
   }
 
   return {
