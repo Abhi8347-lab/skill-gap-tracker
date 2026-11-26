@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Skill Diagnostic Quiz — SkillSync AI</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body data-page="quiz">
+    <header id="app-navbar" class="app-navbar"></header>
+
+    <main class="page-shell">
+      <section class="page-header-row">
+        <div>
+          <div class="badge-cluster">
+            <div class="hero-badge">Diagnostic Skill Verification</div>
+            <span class="ai-source-pill" id="quiz-mode-pill">Offline Question Bank Ready</span>
+          </div>
+          <h1>Verify Your Skills with 5-Question Diagnostics</h1>
+          <p class="page-lead">
+            3 Easy + 2 Hard questions per skill. Verified levels (Beginner 30% · Intermediate 60% · Expert 90%)
+            automatically re-calculate your skill gap and 6-week plan.
+          </p>
+        </div>
+        <div class="header-cta-group">
+          <a href="index.html" class="btn-secondary">← Back to Profile</a>
+          <a href="analyzer.html" class="btn-primary">View Skill Gap &amp; Plan →</a>
+        </div>
+      </section>
+
+      <!-- Skill Selector Queue -->
+      <section class="card quiz-queue-card" aria-label="Skills to Verify">
+        <div class="card-header-row">
+          <div>
+            <h2>Your Selected &amp; Role Skills</h2>
+            <p class="card-sub">Select a skill to start or retake its 5-question diagnostic test.</p>
+          </div>
+          <label class="toggle-switch-label" title="Attempt fresh AI questions when GEMINI_API_KEY is configured; silently falls back to offline bank">
+            <input type="checkbox" id="toggle-ai-quiz-mode" />
+            <span>Try AI-Generated Questions (with offline fallback)</span>
+          </label>
+        </div>
+        <div id="quiz-skill-queue" class="quiz-skill-queue"></div>
+      </section>
+
+      <!-- Active Quiz Card OR Result Card -->
+      <section id="quiz-stage-card" class="card quiz-stage-card" aria-live="polite"></section>
+
+      <!-- Attempt History for Selected Skill -->
+      <section id="quiz-history-card" class="card quiz-history-card" hidden>
+        <div class="card-header-row">
+          <div>
+            <h2 id="quiz-history-title">Attempt History</h2>
+            <p class="card-sub">Full diagnostic history persisted in browser localStorage.</p>
+          </div>
+        </div>
+        <div id="quiz-history-list"></div>
+      </section>
+    </main>
+
+    <script src="js/data.js"></script>
+    <script src="js/questions.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/quiz.js"></script>
+  </body>
+</html>

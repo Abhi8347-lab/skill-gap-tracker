@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manager &amp; HR Performance Dashboard — SkillSync AI</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body data-page="dashboard">
+    <header id="app-navbar" class="app-navbar"></header>
+
+    <main class="page-shell">
+      <section id="dashboard-guard" class="card empty-state-card" hidden>
+        <div class="empty-icon" aria-hidden="true">🔒</div>
+        <h2>Manager or HR View Required</h2>
+        <p>
+          The Performance Dashboard is available only in <strong>Manager</strong> or <strong>HR</strong> mode.
+          Switch roles using the navbar toggle above or return to your Employee plan.
+        </p>
+        <div class="empty-actions">
+          <a href="analyzer.html" class="btn-primary">Back to My Skill Gap →</a>
+        </div>
+      </section>
+
+      <div id="dashboard-content" hidden>
+        <section class="page-header-row">
+          <div>
+            <div class="badge-cluster">
+              <div class="hero-badge" id="dash-role-badge">Manager View</div>
+              <span class="sample-label-tag">Sample data for demonstration</span>
+            </div>
+            <h1 id="dash-main-title">Team Performance &amp; Skill Intelligence</h1>
+            <p class="page-lead" id="dash-main-subtitle"></p>
+          </div>
+          <div class="header-cta-group">
+            <label class="toggle-switch-label" title="Mask employee names as Employee #01, #02, ...">
+              <input type="checkbox" id="toggle-anonymise" />
+              <span>Anonymise names</span>
+            </label>
+            <button type="button" id="btn-export-csv" class="btn-secondary">
+              ⬇ Export CSV
+            </button>
+          </div>
+        </section>
+
+        <!-- 1. Summary KPI Cards -->
+        <section id="dash-summary-grid" class="dash-kpi-grid"></section>
+
+        <!-- 7. HR-Only Extras: ROI Card & Organization Priority Weights -->
+        <section id="hr-only-section" class="hr-extras-grid" hidden>
+          <article class="card hr-roi-card" aria-label="Training ROI">
+            <div class="card-header-row">
+              <div>
+                <div class="ai-mini-badge">HR Analytics · Catalog Cost ROI</div>
+                <h2>Upskilling Spend &amp; Cost per Level Gained</h2>
+                <p class="card-sub">Calculated directly from catalog course costs and verified/completed skill gains.</p>
+              </div>
+            </div>
+            <div id="hr-roi-metrics" class="roi-metrics-grid"></div>
+          </article>
+
+          <article class="card hr-priority-card" aria-label="Organization Priorities">
+            <div class="card-header-row">
+              <div>
+                <div class="ai-mini-badge">HR Strategy · Priority Weights</div>
+                <h2>Organization Priority Skills (Weight 1–5)</h2>
+                <p class="card-sub">Boosts ranking in employee roadmaps, highlights heatmaps, and logs adaptive re-plans.</p>
+              </div>
+            </div>
+            <div id="hr-priority-controls" class="hr-priority-controls"></div>
+          </article>
+        </section>
+
+        <!-- 5. Inline SVG Charts: Level Distribution + Completion by Employee -->
+        <section class="dash-charts-grid">
+          <article class="card chart-card">
+            <div class="card-header-row">
+              <div>
+                <h2>Verified Level Distribution</h2>
+                <p class="card-sub">Counts across Beginner, Intermediate, Expert, and Unverified skills.</p>
+              </div>
+            </div>
+            <div id="chart-level-dist"></div>
+          </article>
+
+          <article class="card chart-card">
+            <div class="card-header-row">
+              <div>
+                <h2>Course Completion by Employee</h2>
+                <p class="card-sub">Color-coded by status: On track, Behind, and At risk.</p>
+              </div>
+            </div>
+            <div id="chart-emp-completion"></div>
+          </article>
+        </section>
+
+        <!-- 2. Team Skill Heatmap -->
+        <section class="card heatmap-card" aria-label="Team Skill Heatmap">
+          <div class="card-header-row">
+            <div>
+              <h2>Team Skill Verification Heatmap</h2>
+              <p class="card-sub">Hover cells for verified score &amp; test date. Click any row to inspect employee details.</p>
+            </div>
+            <div class="heatmap-legend">
+              <span class="heat-legend-item"><span class="heat-swatch heat-expert"></span>Expert (90%)</span>
+              <span class="heat-legend-item"><span class="heat-swatch heat-intermediate"></span>Intermediate (60%)</span>
+              <span class="heat-legend-item"><span class="heat-swatch heat-beginner"></span>Beginner (30%)</span>
+              <span class="heat-legend-item"><span class="heat-swatch heat-unverified"></span>Unverified</span>
+            </div>
+          </div>
+          <div id="team-heatmap-mount" class="table-scroll"></div>
+        </section>
+
+        <!-- 3. Employee Performance Table + Search & Filters -->
+        <section class="card perf-table-card" aria-label="Employee Performance Table">
+          <div class="card-header-row">
+            <div>
+              <h2>Employee Performance Table</h2>
+              <p class="card-sub">Click column headers to sort, or click any employee row to open their detail panel.</p>
+            </div>
+            <div class="table-filters-bar">
+              <input
+                type="search"
+                id="dash-search"
+                class="input-compact"
+                placeholder="Search name or role..."
+                aria-label="Search employees"
+              />
+              <select id="dash-filter-role" class="select-compact" aria-label="Filter by role">
+                <option value="all">All Roles</option>
+              </select>
+              <select id="dash-filter-level" class="select-compact" aria-label="Filter by average level">
+                <option value="all">All Levels</option>
+                <option value="Expert">Expert</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Beginner">Beginner</option>
+                <option value="Unverified">Unverified</option>
+              </select>
+              <select id="dash-filter-status" class="select-compact" aria-label="Filter by status">
+                <option value="all">All Statuses</option>
+                <option value="On track">On track</option>
+                <option value="Behind">Behind</option>
+                <option value="At risk">At risk</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="perf-table-mount" class="table-scroll"></div>
+        </section>
+
+        <!-- 4. Selected Employee Detail Panel -->
+        <section id="employee-detail-card" class="card detail-panel-card" aria-label="Employee Detail Panel" hidden>
+          <div class="card-header-row">
+            <div>
+              <div class="ai-mini-badge" id="detail-team-badge">Team Detail</div>
+              <h2 id="detail-emp-name">Employee Detail</h2>
+              <p class="card-sub" id="detail-emp-meta"></p>
+            </div>
+            <div class="header-cta-group" id="detail-actions-mount"></div>
+          </div>
+
+          <div class="detail-charts-grid">
+            <div class="detail-subcard">
+              <h3>Verified vs. Target Radar</h3>
+              <div id="detail-radar-mount"></div>
+            </div>
+            <div class="detail-subcard">
+              <h3>Diagnostic Score Trend</h3>
+              <div id="detail-trend-mount"></div>
+            </div>
+          </div>
+
+          <div class="detail-lists-grid">
+            <div class="detail-subcard">
+              <h3>Per-Skill Diagnostic History</h3>
+              <div id="detail-test-history"></div>
+            </div>
+            <div class="detail-subcard">
+              <h3>6-Week Plan &amp; Course Progress</h3>
+              <div id="detail-plan-progress"></div>
+            </div>
+          </div>
+
+          <div class="detail-subcard detail-replan-wrap">
+            <h3>Re-Plan History</h3>
+            <div id="detail-replan-history"></div>
+          </div>
+        </section>
+
+        <!-- Nudge & Retest Log -->
+        <section class="card nudge-log-card">
+          <div class="card-header-row">
+            <div>
+              <h2>Recent Nudges &amp; Retest Requests</h2>
+              <p class="card-sub">Sent alerts appear immediately in the employee&rsquo;s notification bell and persist in localStorage.</p>
+            </div>
+          </div>
+          <div id="dash-nudge-log"></div>
+        </section>
+      </div>
+    </main>
+
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/chart.js"></script>
+    <script src="js/dashboard.js"></script>
+  </body>
+</html>

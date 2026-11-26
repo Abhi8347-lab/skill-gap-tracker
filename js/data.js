@@ -195,6 +195,7 @@ window.SkillPathData = (function () {
    */
   const SKILL_PRIORITY_TAGS = {
     power_bi: ["Dashboards"],
+    excel: ["Dashboards", "Data Governance"],
     data_viz: ["Dashboards"],
     streamlit: ["Dashboards", "AI Adoption"],
     statistics: ["Dashboards", "AI Adoption"],
@@ -252,6 +253,7 @@ window.SkillPathData = (function () {
     { id: "python", name: "Python", category: "Core & Data" },
     { id: "sql", name: "SQL", category: "Core & Data" },
     { id: "power_bi", name: "Power BI", category: "Core & Data" },
+    { id: "excel", name: "Excel", category: "Core & Data" },
     { id: "git", name: "Git", category: "Core & Data" },
     { id: "statistics", name: "Statistics", category: "Core & Data" },
     { id: "data_viz", name: "Data Visualization", category: "Core & Data" },
@@ -857,6 +859,7 @@ window.SkillPathData = (function () {
         duration: "12 hours",
         durationHours: 12,
         isFree: true,
+        cost: 0,
         tier: "foundation",
         url: "https://cs50.harvard.edu/sql/",
       },
@@ -869,8 +872,37 @@ window.SkillPathData = (function () {
         duration: "14 hours",
         durationHours: 14,
         isFree: false,
+        cost: 49,
         tier: "applied",
         url: "https://www.coursera.org/learn/sql-for-data-science",
+      },
+    ],
+    excel: [
+      {
+        id: "mslearn-excel-analyze",
+        skillId: "excel",
+        title: "Analyze Data in Microsoft Excel (PivotTables & Lookups)",
+        platform: "Microsoft Learn",
+        level: "Beginner",
+        duration: "6 hours",
+        durationHours: 6,
+        isFree: true,
+        cost: 0,
+        tier: "foundation",
+        url: "https://learn.microsoft.com/training/modules/prepare-data-excel/",
+      },
+      {
+        id: "coursera-excel-business",
+        skillId: "excel",
+        title: "Excel Skills for Business & Corporate Analytics",
+        platform: "Coursera",
+        level: "Intermediate",
+        duration: "14 hours",
+        durationHours: 14,
+        isFree: false,
+        cost: 49,
+        tier: "applied",
+        url: "https://www.coursera.org/specializations/excel",
       },
     ],
     git: [
@@ -922,6 +954,7 @@ window.SkillPathData = (function () {
         duration: "14 hours",
         durationHours: 14,
         isFree: false,
+        cost: 79,
         tier: "applied",
         url: "https://www.coursera.org/professional-certificates/microsoft-power-bi-data-analyst",
       },
@@ -936,6 +969,7 @@ window.SkillPathData = (function () {
         duration: "10 hours",
         durationHours: 10,
         isFree: false,
+        cost: 49,
         tier: "applied",
         url: "https://www.coursera.org/projects/applied-statistics-for-data-analytics",
       },
@@ -1392,6 +1426,323 @@ window.SkillPathData = (function () {
     ],
   };
 
+  // Ensure every catalog course exposes a deterministic numeric USD cost for ROI calculations.
+  Object.keys(COURSES_BY_SKILL).forEach((skillKey) => {
+    COURSES_BY_SKILL[skillKey] = COURSES_BY_SKILL[skillKey].map((course) => ({
+      ...course,
+      cost:
+        typeof course.cost === "number"
+          ? course.cost
+          : course.isFree
+            ? 0
+            : course.platform === "Coursera"
+              ? 79
+              : 49,
+    }));
+  });
+
+  const DEFAULT_ORG_PRIORITIES = [
+    { skillId: "power_bi", weight: 5 },
+    { skillId: "sql", weight: 4 },
+    { skillId: "python", weight: 4 },
+  ];
+
+  const MANAGER_TEAM_NAME = "Analytics & BI";
+
+  /**
+   * 9 seeded demo employees across teams (Manager view filters to MANAGER_TEAM_NAME
+   * plus the current user; HR view displays the entire organization).
+   */
+  const SEED_EMPLOYEES = [
+    {
+      id: "emp_maya",
+      name: "Maya Lin",
+      team: "Analytics & BI",
+      targetRole: "junior_data_analyst",
+      companyPriority: "Dashboards",
+      experience: "1-3",
+      weeklyHours: "5-10",
+      learningSlotsPerWeek: 3,
+      selfScores: { sql: 80, power_bi: 60, statistics: 60 },
+      verifiedLevels: {
+        sql: { level: "Expert", score: 5, easyCorrect: 3, hardCorrect: 2, verifiedPct: 90, updatedAt: "2026-11-18" },
+        power_bi: { level: "Intermediate", score: 4, easyCorrect: 3, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-20" },
+        statistics: { level: "Intermediate", score: 3, easyCorrect: 2, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-22" },
+      },
+      testResults: {
+        sql: [
+          { date: "2026-11-02", score: 4, easyCorrect: 3, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 },
+          { date: "2026-11-18", score: 5, easyCorrect: 3, hardCorrect: 2, level: "Expert", verifiedPct: 90 },
+        ],
+        power_bi: [
+          { date: "2026-11-10", score: 2, easyCorrect: 2, hardCorrect: 0, level: "Beginner", verifiedPct: 30 },
+          { date: "2026-11-20", score: 4, easyCorrect: 3, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 },
+        ],
+        statistics: [
+          { date: "2026-11-22", score: 3, easyCorrect: 2, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 },
+        ],
+      },
+      courseProgress: {
+        "mslearn-powerbi-start": "completed",
+        "mslearn-powerbi-dashboards": "completed",
+        "coursera-powerbi-analyst": "in_progress",
+        "coursera-applied-stats": "completed",
+      },
+      replanHistory: [
+        { date: "2026-11-20", reason: "Power BI diagnostic upgraded Beginner → Intermediate", summary: "Advanced directly to Week 6 Mini Dashboard Project." },
+      ],
+      levelsGained: 3,
+    },
+    {
+      id: "emp_ethan",
+      name: "Ethan Reed",
+      team: "Analytics & BI",
+      targetRole: "junior_data_analyst",
+      companyPriority: "Dashboards",
+      experience: "0-1",
+      weeklyHours: "2-5",
+      learningSlotsPerWeek: 2,
+      selfScores: { sql: 60, power_bi: 40, statistics: 40 },
+      verifiedLevels: {
+        sql: { level: "Intermediate", score: 3, easyCorrect: 2, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-12" },
+        power_bi: { level: "Beginner", score: 2, easyCorrect: 2, hardCorrect: 0, verifiedPct: 30, updatedAt: "2026-11-14" },
+        statistics: { level: "Beginner", score: 1, easyCorrect: 1, hardCorrect: 0, verifiedPct: 30, updatedAt: "2026-11-15" },
+      },
+      testResults: {
+        sql: [{ date: "2026-11-12", score: 3, easyCorrect: 2, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 }],
+        power_bi: [{ date: "2026-11-14", score: 2, easyCorrect: 2, hardCorrect: 0, level: "Beginner", verifiedPct: 30 }],
+        statistics: [{ date: "2026-11-15", score: 1, easyCorrect: 1, hardCorrect: 0, level: "Beginner", verifiedPct: 30 }],
+      },
+      courseProgress: {
+        "mslearn-powerbi-start": "in_progress",
+        "coursera-powerbi-analyst": "not_started",
+      },
+      replanHistory: [
+        { date: "2026-11-15", reason: "Low initial Statistics & Power BI diagnostic scores", summary: "Extended Power BI Essentials across Weeks 1–4." },
+      ],
+      levelsGained: 1,
+    },
+    {
+      id: "emp_elena",
+      name: "Elena Ivanova",
+      team: "Analytics & BI",
+      targetRole: "data_engineer",
+      companyPriority: "Data Governance",
+      experience: "1-3",
+      weeklyHours: "5-10",
+      learningSlotsPerWeek: 3,
+      selfScores: { sql: 80, python: 60, numpy_pandas: 60, docker: 40 },
+      verifiedLevels: {
+        sql: { level: "Expert", score: 5, easyCorrect: 3, hardCorrect: 2, verifiedPct: 90, updatedAt: "2026-11-19" },
+        python: { level: "Intermediate", score: 4, easyCorrect: 3, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-21" },
+        docker: { level: "Beginner", score: 2, easyCorrect: 2, hardCorrect: 0, verifiedPct: 30, updatedAt: "2026-11-23" },
+      },
+      testResults: {
+        sql: [{ date: "2026-11-19", score: 5, easyCorrect: 3, hardCorrect: 2, level: "Expert", verifiedPct: 90 }],
+        python: [
+          { date: "2026-11-05", score: 2, easyCorrect: 2, hardCorrect: 0, level: "Beginner", verifiedPct: 30 },
+          { date: "2026-11-21", score: 4, easyCorrect: 3, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 },
+        ],
+        docker: [{ date: "2026-11-23", score: 2, easyCorrect: 2, hardCorrect: 0, level: "Beginner", verifiedPct: 30 }],
+      },
+      courseProgress: {
+        "fcc-scientific-python": "completed",
+        "fcc-data-analysis-python": "completed",
+        "yt-docker-nana": "in_progress",
+        "edx-ibm-cloud": "not_started",
+      },
+      replanHistory: [
+        { date: "2026-11-21", reason: "Python verified Intermediate", summary: "Shifted focus to Docker & AWS pipelines." },
+      ],
+      levelsGained: 2,
+    },
+    {
+      id: "emp_liam",
+      name: "Liam Carter",
+      team: "Analytics & BI",
+      targetRole: "data_scientist",
+      companyPriority: "AI Adoption",
+      experience: "0-1",
+      weeklyHours: "5-10",
+      learningSlotsPerWeek: 3,
+      selfScores: { python: 60, sql: 60, statistics: 40, machine_learning: 40 },
+      verifiedLevels: {
+        python: { level: "Intermediate", score: 3, easyCorrect: 2, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-16" },
+        sql: { level: "Intermediate", score: 4, easyCorrect: 3, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-17" },
+        statistics: { level: "Beginner", score: 2, easyCorrect: 1, hardCorrect: 1, verifiedPct: 30, updatedAt: "2026-11-18" },
+      },
+      testResults: {
+        python: [{ date: "2026-11-16", score: 3, easyCorrect: 2, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 }],
+        sql: [{ date: "2026-11-17", score: 4, easyCorrect: 3, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 }],
+        statistics: [{ date: "2026-11-18", score: 2, easyCorrect: 1, hardCorrect: 1, level: "Beginner", verifiedPct: 30 }],
+      },
+      courseProgress: {
+        "coursera-sql-ds": "completed",
+        "coursera-applied-stats": "in_progress",
+        "coursera-ml-spec": "not_started",
+      },
+      replanHistory: [
+        { date: "2026-11-18", reason: "Statistics rated Beginner (missed easy foundation)", summary: "Added Khan Academy Statistics before ML Specialization." },
+      ],
+      levelsGained: 1,
+    },
+    {
+      id: "emp_priya",
+      name: "Priya Sharma",
+      team: "AI & Data",
+      targetRole: "ai_ml_engineer",
+      companyPriority: "AI Adoption",
+      experience: "1-3",
+      weeklyHours: "10-20",
+      learningSlotsPerWeek: 5,
+      selfScores: { python: 80, git: 80, machine_learning: 60, deep_learning: 60 },
+      verifiedLevels: {
+        python: { level: "Expert", score: 5, easyCorrect: 3, hardCorrect: 2, verifiedPct: 90, updatedAt: "2026-11-20" },
+        git: { level: "Expert", score: 5, easyCorrect: 3, hardCorrect: 2, verifiedPct: 90, updatedAt: "2026-11-21" },
+        machine_learning: { level: "Intermediate", score: 4, easyCorrect: 3, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-22" },
+        deep_learning: { level: "Intermediate", score: 3, easyCorrect: 2, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-23" },
+      },
+      testResults: {
+        python: [{ date: "2026-11-20", score: 5, easyCorrect: 3, hardCorrect: 2, level: "Expert", verifiedPct: 90 }],
+        machine_learning: [
+          { date: "2026-11-08", score: 2, easyCorrect: 2, hardCorrect: 0, level: "Beginner", verifiedPct: 30 },
+          { date: "2026-11-22", score: 4, easyCorrect: 3, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 },
+        ],
+        deep_learning: [{ date: "2026-11-23", score: 3, easyCorrect: 2, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 }],
+      },
+      courseProgress: {
+        "yt-streamlit-12apps": "completed",
+        "fcc-data-analysis-python": "completed",
+        "coursera-ml-spec": "completed",
+        "coursera-dl-spec": "in_progress",
+      },
+      replanHistory: [
+        { date: "2026-11-22", reason: "ML upgraded to Intermediate", summary: "Prioritized Deep Learning Specialization for Weeks 4–6." },
+      ],
+      levelsGained: 3,
+    },
+    {
+      id: "emp_carlos",
+      name: "Carlos Mendez",
+      team: "Platform & Cloud",
+      targetRole: "devops_engineer",
+      companyPriority: "Cloud Migration",
+      experience: "1-3",
+      weeklyHours: "5-10",
+      learningSlotsPerWeek: 3,
+      selfScores: { linux: 80, docker: 60, kubernetes: 40, aws_cloud: 40 },
+      verifiedLevels: {
+        linux: { level: "Expert", score: 5, easyCorrect: 3, hardCorrect: 2, verifiedPct: 90, updatedAt: "2026-11-09" },
+        docker: { level: "Intermediate", score: 3, easyCorrect: 2, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-11" },
+        kubernetes: { level: "Beginner", score: 1, easyCorrect: 1, hardCorrect: 0, verifiedPct: 30, updatedAt: "2026-11-12" },
+      },
+      testResults: {
+        linux: [{ date: "2026-11-09", score: 5, easyCorrect: 3, hardCorrect: 2, level: "Expert", verifiedPct: 90 }],
+        docker: [{ date: "2026-11-11", score: 3, easyCorrect: 2, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 }],
+        kubernetes: [{ date: "2026-11-12", score: 1, easyCorrect: 1, hardCorrect: 0, level: "Beginner", verifiedPct: 30 }],
+      },
+      courseProgress: {
+        "yt-k8s-nana": "in_progress",
+        "udemy-docker-k8s": "not_started",
+      },
+      replanHistory: [
+        { date: "2026-11-12", reason: "Kubernetes Beginner score detected", summary: "Scheduled K8s foundational pods/services labs first." },
+      ],
+      levelsGained: 1,
+    },
+    {
+      id: "emp_hana",
+      name: "Hana Sato",
+      team: "Web Engineering",
+      targetRole: "fullstack_developer",
+      companyPriority: "Dashboards",
+      experience: "1-3",
+      weeklyHours: "5-10",
+      learningSlotsPerWeek: 3,
+      selfScores: { javascript: 80, react: 60, typescript: 60, sql: 60 },
+      verifiedLevels: {
+        javascript: { level: "Expert", score: 5, easyCorrect: 3, hardCorrect: 2, verifiedPct: 90, updatedAt: "2026-11-19" },
+        react: { level: "Intermediate", score: 4, easyCorrect: 3, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-20" },
+        sql: { level: "Intermediate", score: 4, easyCorrect: 3, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-21" },
+      },
+      testResults: {
+        javascript: [{ date: "2026-11-19", score: 5, easyCorrect: 3, hardCorrect: 2, level: "Expert", verifiedPct: 90 }],
+        react: [
+          { date: "2026-11-04", score: 2, easyCorrect: 2, hardCorrect: 0, level: "Beginner", verifiedPct: 30 },
+          { date: "2026-11-20", score: 4, easyCorrect: 3, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 },
+        ],
+        sql: [{ date: "2026-11-21", score: 4, easyCorrect: 3, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 }],
+      },
+      courseProgress: {
+        "yt-typescript-full": "completed",
+        "udemy-react-guide": "completed",
+        "cs50-web": "completed",
+        "coursera-sql-ds": "in_progress",
+      },
+      replanHistory: [
+        { date: "2026-11-20", reason: "React upgraded to Intermediate", summary: "Moved SQL & Docker capstone earlier in schedule." },
+      ],
+      levelsGained: 3,
+    },
+    {
+      id: "emp_noah",
+      name: "Noah Brooks",
+      team: "Security Ops",
+      targetRole: "cybersecurity_analyst",
+      companyPriority: "Cybersecurity",
+      experience: "0-1",
+      weeklyHours: "2-5",
+      learningSlotsPerWeek: 2,
+      selfScores: { networking: 60, linux: 60, security_basics: 40 },
+      verifiedLevels: {
+        networking: { level: "Intermediate", score: 3, easyCorrect: 2, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-10" },
+        security_basics: { level: "Beginner", score: 2, easyCorrect: 2, hardCorrect: 0, verifiedPct: 30, updatedAt: "2026-11-11" },
+      },
+      testResults: {
+        networking: [{ date: "2026-11-10", score: 3, easyCorrect: 2, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 }],
+        security_basics: [{ date: "2026-11-11", score: 2, easyCorrect: 2, hardCorrect: 0, level: "Beginner", verifiedPct: 30 }],
+      },
+      courseProgress: {
+        "cs50-cybersecurity": "in_progress",
+        "coursera-google-cyber": "not_started",
+      },
+      replanHistory: [
+        { date: "2026-11-11", reason: "Security Fundamentals Beginner verified", summary: "Prioritized CS50 Cybersecurity before SIEM monitoring." },
+      ],
+      levelsGained: 1,
+    },
+    {
+      id: "emp_amara",
+      name: "Amara Okafor",
+      team: "Platform & Cloud",
+      targetRole: "cloud_engineer",
+      companyPriority: "Cloud Migration",
+      experience: "1-3",
+      weeklyHours: "10-20",
+      learningSlotsPerWeek: 5,
+      selfScores: { aws_cloud: 60, docker: 80, terraform: 60, linux: 60 },
+      verifiedLevels: {
+        docker: { level: "Expert", score: 5, easyCorrect: 3, hardCorrect: 2, verifiedPct: 90, updatedAt: "2026-11-18" },
+        aws_cloud: { level: "Intermediate", score: 4, easyCorrect: 3, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-20" },
+        terraform: { level: "Intermediate", score: 3, easyCorrect: 2, hardCorrect: 1, verifiedPct: 60, updatedAt: "2026-11-21" },
+      },
+      testResults: {
+        docker: [{ date: "2026-11-18", score: 5, easyCorrect: 3, hardCorrect: 2, level: "Expert", verifiedPct: 90 }],
+        aws_cloud: [{ date: "2026-11-20", score: 4, easyCorrect: 3, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 }],
+        terraform: [{ date: "2026-11-21", score: 3, easyCorrect: 2, hardCorrect: 1, level: "Intermediate", verifiedPct: 60 }],
+      },
+      courseProgress: {
+        "coursera-aws-architect": "completed",
+        "yt-terraform-fcc": "completed",
+        "udemy-docker-k8s": "in_progress",
+      },
+      replanHistory: [
+        { date: "2026-11-21", reason: "Terraform verified Intermediate", summary: "Advanced to Kubernetes EKS workload deployment." },
+      ],
+      levelsGained: 2,
+    },
+  ];
+
   return {
     STATUS_OPTIONS,
     BACKGROUND_OPTIONS,
@@ -1401,6 +1752,9 @@ window.SkillPathData = (function () {
     LEARNING_SLOTS_OPTIONS,
     SKILL_PRIORITY_TAGS,
     DEMO_EMPLOYEE_PROFILE,
+    DEFAULT_ORG_PRIORITIES,
+    MANAGER_TEAM_NAME,
+    SEED_EMPLOYEES,
     SKILL_CATEGORIES,
     SKILLS_CATALOG,
     SKILL_MAP,

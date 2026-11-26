@@ -1,8 +1,46 @@
 /**
- * SkillSync AI Engine: Percentage Skill Gap Analysis, 6-Week Planner,
- * Adaptive Course Mapping, and Explainable Recommendations (with AI + Fallback).
+ * SkillSync AI Engine:
+ * - Diagnostic getLevel(easyCorrect, hardCorrect) rules
+ * - Verified vs self-rated percentage skill gap analysis
+ * - Priority-aware smart ranking & adaptive 6-week re-planning
+ * - Explainable course recommendations & organization dashboard metrics
  */
 window.SkillPathEngine = (function () {
+  const LEVEL_TO_PCT = {
+    Beginner: 30,
+    Intermediate: 60,
+    Expert: 90,
+  };
+
+  /**
+   * Determine diagnostic skill level from easy (0-3) and hard (0-2) correct counts.
+   * Rules:
+   * - Expert: all 5 correct.
+   * - Intermediate: 3 or 4 correct AND at least 2 of the 3 easy questions correct.
+   * - Beginner: everything else (0-2 correct, or failing the easy foundation questions).
+   *
+   * @param {number} easyCorrect - Number of easy questions answered correctly (0-3).
+   * @param {number} hardCorrect - Number of hard questions answered correctly (0-2).
+   * @returns {"Beginner" | "Intermediate" | "Expert"}
+   */
+  function getLevel(easyCorrect, hardCorrect) {
+    const easy = Math.max(0, Math.min(3, Math.floor(Number(easyCorrect) || 0)));
+    const hard = Math.max(0, Math.min(2, Math.floor(Number(hardCorrect) || 0)));
+    const total = easy + hard;
+
+    if (total === 5) {
+      return "Expert";
+    }
+    if ((total === 3 || total === 4) && easy >= 2) {
+      return "Intermediate";
+    }
+    return "Beginner";
+  }
+
+  function getLevelPct(level) {
+    return LEVEL_TO_PCT[level] || 30;
+  }
+
   function getExperienceOption(expId) {
     const opts = window.SkillPathData.EXPERIENCE_OPTIONS;
     return opts.find((o) => o.id === expId) || opts[0];
@@ -23,7 +61,10 @@ window.SkillPathEngine = (function () {
 
   function getActivePriorities(profile) {
     if (!profile) return [];
-    if (Array.isArray(profile.companyPriorities) && profile.companyPriorities.length) {
+    if (
+      Array.isArray(profile.companyPriorities) &&
+      profile.companyPriorities.length
+    ) {
       return profile.companyPriorities;
     }
     if (profile.companyPriority) return [profile.companyPriority];
@@ -44,16 +85,14 @@ window.SkillPathEngine = (function () {
 
   function getRecommendedCoursesForSkill(
     skillId,
-    initialPct,
+    baselinePct,
     requiredPct,
     courseProgress
   ) {
     const allCourses = window.SkillPathData.COURSES_BY_SKILL[skillId] || [];
     if (allCourses.length === 0) return [];
 
-    // When learner already scores >= 50%, recommend targeted applied/intermediate courses
-    // (preserving any foundation course already started/completed).
-    if (initialPct >= 50 && initialPct < requiredPct) {
+    if (baselinePct >= 50 && baselinePct < requiredPct) {
       const targeted = allCourses.filter(
         (c) =>
           c.tier === "applied" ||
@@ -71,33 +110,53 @@ window.SkillPathEngine = (function () {
     const priorities = getActivePriorities(profile);
     const priorityText = priorities.join(", ");
     const roleName =
-      window.SkillPathData.ROLE_MAP[profile.targetRole]?.name || "your target role";
+      window.SkillPathData.ROLE_MAP[profile.targetRole]?.name ||
+      "your target role";
 
-    if (skillItem.initialPct >= skillItem.requiredPct) {
-      return `Optional refresher: your ${skillItem.skillName} score is already ${skillItem.initialPct}% (target ${skillItem.requiredPct}% for ${roleName}).`;
+    const scoreSourceText = skillItem.isVerified
+      ? `verified ${skillItem.verifiedLevel} (${skillItem.baselinePct}%)`
+      : `${skillItem.baselinePct}%`;
+
+    if (skillItem.baselinePct >= skillItem.requiredPct) {
+      return `Optional refresher: your ${skillItem.skillName} score is already ${scoreSourceText} (target ${skillItem.requiredPct}% for ${roleName}).`;
     }
 
     if (course.isCapstone) {
-      return `Recommended as your Week 6 capstone to apply your SQL (${resolveInitialPct(profile, "sql")}%) and new ${skillItem.skillName} skills to a real ${priorityText || "executive"} dashboard.`;
+      return `Recommended as your Week 6 capstone to apply your SQL (${resolveInitialPct(profile, "sql")}%) and ${skillItem.skillName} (${scoreSourceText}) to a real ${priorityText || "executive"} dashboard.`;
     }
 
-    if (skillItem.isPriorityMatch && priorityText) {
-      return `Recommended because your ${skillItem.skillName} score is ${skillItem.initialPct}% (target ${skillItem.requiredPct}%) and ${skillItem.matchedPriorities.join(" & ")} is a current company priority.`;
+    if (skillItem.isPriorityMatch) {
+      const pLabel =
+        skillItem.matchedPriorities[0] ||
+        priorityText ||
+        "organization priority";
+      return `Recommended because your ${skillItem.skillName} score is ${scoreSourceText} (target ${skillItem.requiredPct}%) and ${pLabel} is a current company priority.`;
     }
 
-    return `Recommended because your ${skillItem.skillName} score is ${skillItem.initialPct}% (target ${skillItem.requiredPct}%), closing a ${skillItem.requiredPct - skillItem.initialPct}% gap needed for ${roleName}.`;
+    return `Recommended because your ${skillItem.skillName} score is ${scoreSourceText} (target ${skillItem.requiredPct}%), closing a ${skillItem.requiredPct - skillItem.baselinePct}% gap needed for ${roleName}.`;
   }
 
   function generateSixWeekPlan(profile, roadmap) {
     const slotsPerWeek = getSlotsPerWeek(profile);
     const priorities = getActivePriorities(profile);
 
-    // Explicit Stage 1 corporate demo plan for Junior Data Analyst
-    if (profile.targetRole === "junior_data_analyst") {
-      const powerBi = roadmap.find((s) => s.skillId === "power_bi");
-      const stats = roadmap.find((s) => s.skillId === "statistics");
-      const sql = roadmap.find((s) => s.skillId === "sql");
+    const powerBi = roadmap.find((s) => s.skillId === "power_bi");
+    const stats = roadmap.find((s) => s.skillId === "statistics");
+    const sql = roadmap.find((s) => s.skillId === "sql");
 
+    // Preserve Stage 1 6-week template for Junior Data Analyst when Power BI & Statistics
+    // are the active gaps and SQL is already >= 80%.
+    const isClassicDemoGapShape =
+      profile.targetRole === "junior_data_analyst" &&
+      powerBi &&
+      stats &&
+      sql &&
+      powerBi.effectivePct < powerBi.requiredPct &&
+      stats.effectivePct < stats.requiredPct &&
+      sql.effectivePct >= sql.requiredPct &&
+      roadmap[0].skillId === "power_bi";
+
+    if (isClassicDemoGapShape) {
       return [
         {
           id: "plan-w1-3",
@@ -106,13 +165,15 @@ window.SkillPathEngine = (function () {
           skillId: "power_bi",
           skillName: "Power BI",
           slotsLabel: `${slotsPerWeek} learning slots/week (${slotsPerWeek * 3} slots total)`,
-          priorityTag: priorities.includes("Dashboards") ? "Priority: Dashboards" : null,
-          targetSummary: powerBi
-            ? `Lift Power BI from ${powerBi.effectivePct}% → ${powerBi.requiredPct}% target`
-            : "Build core Power BI reporting proficiency (80% target)",
+          priorityTag: priorities.includes("Dashboards")
+            ? "Priority: Dashboards"
+            : powerBi.isPriorityMatch
+              ? `Org Priority (W${powerBi.priorityWeight})`
+              : null,
+          targetSummary: `Lift Power BI from ${powerBi.effectivePct}% → ${powerBi.requiredPct}% target`,
           description:
             "Master Power Query transforms, star-schema data modeling, DAX measures, and executive dashboard layouts.",
-          status: powerBi ? powerBi.status : "needs_improvement",
+          status: powerBi.status,
         },
         {
           id: "plan-w4-5",
@@ -121,13 +182,13 @@ window.SkillPathEngine = (function () {
           skillId: "statistics",
           skillName: "Statistics",
           slotsLabel: `${slotsPerWeek} learning slots/week (${slotsPerWeek * 2} slots total)`,
-          priorityTag: null,
-          targetSummary: stats
-            ? `Lift Statistics from ${stats.effectivePct}% → ${stats.requiredPct}% target`
-            : "Strengthen applied statistical inference (80% target)",
+          priorityTag: stats.isPriorityMatch
+            ? `Org Priority (W${stats.priorityWeight})`
+            : null,
+          targetSummary: `Lift Statistics from ${stats.effectivePct}% → ${stats.requiredPct}% target`,
           description:
             "Practice distributions, confidence intervals, hypothesis testing, and KPI variance analysis on business datasets.",
-          status: stats ? stats.status : "needs_improvement",
+          status: stats.status,
         },
         {
           id: "plan-w6",
@@ -136,20 +197,25 @@ window.SkillPathEngine = (function () {
           skillId: "power_bi",
           skillName: "Mini Dashboard Project",
           slotsLabel: `${slotsPerWeek} learning slots (${slotsPerWeek} slots total)`,
-          priorityTag: priorities.includes("Dashboards") ? "Capstone · Dashboards" : "Capstone",
-          targetSummary: `Integrate SQL (${sql ? sql.effectivePct : 80}%) + Power BI + Applied Statistics`,
+          priorityTag: priorities.includes("Dashboards")
+            ? "Capstone · Dashboards"
+            : "Capstone",
+          targetSummary: `Integrate SQL (${sql.effectivePct}%) + Power BI (${powerBi.effectivePct}%) + Statistics (${stats.effectivePct}%)`,
           description:
             "Build and publish an end-to-end executive KPI dashboard combining SQL warehouse queries, statistical insights, and Power BI visuals.",
           status:
-            powerBi?.status === "strong" && stats?.status === "strong"
+            powerBi.status === "strong" && stats.status === "strong"
               ? "strong"
               : "needs_improvement",
         },
       ];
     }
 
-    // Dynamic 6-week plan for any other role
-    const gaps = roadmap.filter((s) => s.status !== "strong");
+    // Dynamic adaptive 6-week plan ranked by priority weight & remaining gap size
+    const gaps = roadmap
+      .filter((s) => s.status !== "strong")
+      .sort((a, b) => b.rankScore - a.rankScore);
+
     if (gaps.length === 0) {
       return [
         {
@@ -162,7 +228,7 @@ window.SkillPathEngine = (function () {
           priorityTag: priorities[0] ? `Priority: ${priorities[0]}` : null,
           targetSummary: "All required skills meet target proficiency",
           description:
-            "Focus on cross-functional portfolio projects, code/architecture reviews, and mentoring peers.",
+            "Focus on cross-functional deliverables, architecture reviews, and mentoring peers.",
           status: "strong",
         },
       ];
@@ -170,16 +236,21 @@ window.SkillPathEngine = (function () {
 
     const phaseOne = gaps[0];
     const phaseTwo = gaps[1] || gaps[0];
+    const phaseThreeSkill = gaps[2] || phaseOne;
+
     return [
       {
         id: "plan-w1-3",
         weeksLabel: "Weeks 1–3",
-        title: `${phaseOne.skillName} Core Sprint`,
+        title:
+          phaseOne.skillId === "power_bi"
+            ? "Power BI Essentials"
+            : `${phaseOne.skillName} Core Sprint`,
         skillId: phaseOne.skillId,
         skillName: phaseOne.skillName,
-        slotsLabel: `${slotsPerWeek} learning slots/week`,
+        slotsLabel: `${slotsPerWeek} learning slots/week (${slotsPerWeek * 3} slots total)`,
         priorityTag: phaseOne.isPriorityMatch
-          ? `Priority: ${phaseOne.matchedPriorities[0]}`
+          ? `Priority: ${phaseOne.matchedPriorities[0] || `Weight ${phaseOne.priorityWeight}`}`
           : null,
         targetSummary: `Lift ${phaseOne.skillName} from ${phaseOne.effectivePct}% → ${phaseOne.requiredPct}%`,
         description: phaseOne.why,
@@ -189,14 +260,16 @@ window.SkillPathEngine = (function () {
         id: "plan-w4-5",
         weeksLabel: "Weeks 4–5",
         title:
-          phaseTwo.skillId !== phaseOne.skillId
-            ? `Applied ${phaseTwo.skillName}`
-            : `Intermediate ${phaseOne.skillName} Practice`,
+          phaseTwo.skillId === "statistics"
+            ? "Applied Statistics"
+            : phaseTwo.skillId !== phaseOne.skillId
+              ? `Applied ${phaseTwo.skillName}`
+              : `Intermediate ${phaseOne.skillName} Practice`,
         skillId: phaseTwo.skillId,
         skillName: phaseTwo.skillName,
-        slotsLabel: `${slotsPerWeek} learning slots/week`,
+        slotsLabel: `${slotsPerWeek} learning slots/week (${slotsPerWeek * 2} slots total)`,
         priorityTag: phaseTwo.isPriorityMatch
-          ? `Priority: ${phaseTwo.matchedPriorities[0]}`
+          ? `Priority: ${phaseTwo.matchedPriorities[0] || `Weight ${phaseTwo.priorityWeight}`}`
           : null,
         targetSummary: `Lift ${phaseTwo.skillName} from ${phaseTwo.effectivePct}% → ${phaseTwo.requiredPct}%`,
         description: phaseTwo.why,
@@ -205,26 +278,51 @@ window.SkillPathEngine = (function () {
       {
         id: "plan-w6",
         weeksLabel: "Week 6",
-        title: "Applied Role Mini Project",
-        skillId: phaseOne.skillId,
+        title:
+          profile.targetRole === "junior_data_analyst"
+            ? "Mini dashboard project"
+            : `${phaseThreeSkill.skillName} Mini Project`,
+        skillId: phaseThreeSkill.skillId,
         skillName: "Capstone Integration",
-        slotsLabel: `${slotsPerWeek} learning slots`,
-        priorityTag: priorities[0] ? `Aligned: ${priorities[0]}` : "Capstone",
-        targetSummary: "Synthesize newly learned skills into a demonstrable deliverable",
+        slotsLabel: `${slotsPerWeek} learning slots (${slotsPerWeek} slots total)`,
+        priorityTag: priorities[0] ? `Capstone · ${priorities[0]}` : "Capstone",
+        targetSummary:
+          gaps.length > 2
+            ? `Apply ${phaseOne.skillName}, ${phaseTwo.skillName} & ${phaseThreeSkill.skillName} (${phaseThreeSkill.effectivePct}% → ${phaseThreeSkill.requiredPct}%)`
+            : `Synthesize ${phaseOne.skillName} & ${phaseTwo.skillName} into a live deliverable`,
         description:
-          "Ship a focused mini project applying your top two target skills with peer/manager review.",
+          "Build and review a practical capstone project validating your updated skill levels.",
         status: "needs_improvement",
       },
     ];
   }
 
-  function analyzeProfile(profile, courseProgress) {
+  /**
+   * Core gap analysis integrating self-rated scores, verified diagnostic levels,
+   * HR priority weights, and course completion progress.
+   */
+  function analyzeProfile(profile, courseProgress, extraState) {
     const data = window.SkillPathData;
     const progress = courseProgress || {};
 
     if (!profile || !profile.targetRole) {
       return null;
     }
+
+    const storedState =
+      extraState ||
+      (window.SkillPathStorage ? window.SkillPathStorage.readLocal() : {});
+    const empId = storedState.currentEmployeeId || "emp_current";
+    const verifiedMap =
+      extraState && extraState.verifiedLevelsOverride
+        ? extraState.verifiedLevelsOverride
+        : storedState.verifiedLevels?.[empId] || {};
+    const orgPriorities = Array.isArray(storedState.priorities)
+      ? storedState.priorities
+      : data.DEFAULT_ORG_PRIORITIES || [];
+    const orgPriorityMap = Object.fromEntries(
+      orgPriorities.map((p) => [p.skillId, Number(p.weight) || 3])
+    );
 
     const role = data.ROLE_MAP[profile.targetRole] || data.ROLES_CATALOG[0];
     const expOption = getExperienceOption(profile.experience);
@@ -245,31 +343,44 @@ window.SkillPathEngine = (function () {
     let inProgressCoursesCount = 0;
     let notStartedCoursesCount = 0;
 
-    const roadmap = role.skills.map((reqSkill, index) => {
+    const rawRoadmap = role.skills.map((reqSkill, index) => {
       const skillMeta = data.SKILL_MAP[reqSkill.skillId] || {
         id: reqSkill.skillId,
         name: reqSkill.skillId,
         category: "Core",
       };
 
-      const initialPct = resolveInitialPct(profile, reqSkill.skillId);
+      const selfRatedPct = resolveInitialPct(profile, reqSkill.skillId);
+      const verifiedRecord = verifiedMap[reqSkill.skillId] || null;
+      const isVerified = Boolean(verifiedRecord && verifiedRecord.level);
+      const verifiedLevel = isVerified ? verifiedRecord.level : null;
+      const verifiedPct = isVerified ? getLevelPct(verifiedLevel) : null;
+
+      // Verified score overrides self-rated score when available.
+      const baselinePct = isVerified ? verifiedPct : selfRatedPct;
+
       const requiredPct =
         reqSkill.requiredPct !== undefined
           ? reqSkill.requiredPct
           : reqSkill.required * 20;
       const requiredLevel = Number((requiredPct / 20).toFixed(1));
-      const initialLevel = Number((initialPct / 20).toFixed(1));
-      const hadGapInitially = initialPct < requiredPct;
+      const hadGapInitially = baselinePct < requiredPct;
 
       const skillTags = data.SKILL_PRIORITY_TAGS[reqSkill.skillId] || [];
       const matchedPriorities = activePriorities.filter((p) =>
         skillTags.includes(p)
       );
-      const isPriorityMatch = matchedPriorities.length > 0;
+      const orgWeight = orgPriorityMap[reqSkill.skillId] || 0;
+      const isPriorityMatch = matchedPriorities.length > 0 || orgWeight > 0;
+      const priorityWeight = orgWeight
+        ? orgWeight
+        : matchedPriorities.length > 0
+          ? 4
+          : 1;
 
       const rawCourses = getRecommendedCoursesForSkill(
         reqSkill.skillId,
-        initialPct,
+        baselinePct,
         requiredPct,
         progress
       );
@@ -283,7 +394,7 @@ window.SkillPathEngine = (function () {
       const allSkillCoursesDone =
         rawCourses.length > 0 && skillCoursesCompleted === rawCourses.length;
 
-      let effectivePct = initialPct;
+      let effectivePct = baselinePct;
       if (hadGapInitially) {
         if (allSkillCoursesDone) {
           effectivePct = requiredPct;
@@ -294,11 +405,11 @@ window.SkillPathEngine = (function () {
           const weightedDone =
             skillCoursesCompleted + skillCoursesInProgress * 0.4;
           const gain = Math.round(
-            ((requiredPct - initialPct) * weightedDone) / rawCourses.length
+            ((requiredPct - baselinePct) * weightedDone) / rawCourses.length
           );
           effectivePct = Math.min(
             requiredPct - 5,
-            Math.max(initialPct, initialPct + gain)
+            Math.max(baselinePct, baselinePct + gain)
           );
         }
       }
@@ -327,14 +438,28 @@ window.SkillPathEngine = (function () {
         skillCoursesCompleted > 0 ||
         skillCoursesInProgress > 0;
 
+      const comparisonText = isVerified
+        ? selfRatedPct > 0
+          ? `Self-rated ${selfRatedPct}% vs Verified ${verifiedLevel} (${verifiedPct}%)`
+          : `Verified ${verifiedLevel} (${verifiedPct}%)`
+        : `Unverified · Self-rated ${selfRatedPct}%`;
+
       const skillItemShell = {
         skillId: reqSkill.skillId,
         skillName: skillMeta.name,
-        initialPct,
+        selfRatedPct,
+        baselinePct,
         effectivePct,
         requiredPct,
+        isVerified,
+        verifiedLevel,
         isPriorityMatch,
-        matchedPriorities,
+        matchedPriorities:
+          matchedPriorities.length > 0
+            ? matchedPriorities
+            : orgWeight > 0
+              ? [`Org Priority W${orgWeight}`]
+              : [],
       };
 
       const recommendedCourses = rawCourses.map((course) => ({
@@ -366,22 +491,34 @@ window.SkillPathEngine = (function () {
       totalMatchedPct += Math.min(effectivePct, requiredPct);
       totalRemainingHours += remainingHours;
 
+      const rankScore = gapPct * (1 + (priorityWeight - 1) * 0.35);
+
       return {
+        originalIndex: index,
         stepNumber: index + 1,
         skillId: reqSkill.skillId,
         skillName: skillMeta.name,
         category: skillMeta.category,
         why: reqSkill.why,
-        initialPct,
+        selfRatedPct,
+        baselinePct,
+        initialPct: baselinePct,
         effectivePct,
         requiredPct,
         gapPct,
-        initialLevel,
+        isVerified,
+        verifiedLevel,
+        verifiedPct,
+        verifiedUpdatedAt: verifiedRecord?.updatedAt || null,
+        comparisonText,
+        initialLevel: Number((baselinePct / 20).toFixed(1)),
         effectiveLevel,
         requiredLevel,
         gap: Math.max(0, Number((requiredLevel - effectiveLevel).toFixed(1))),
         isPriorityMatch,
-        matchedPriorities,
+        priorityWeight,
+        matchedPriorities: skillItemShell.matchedPriorities,
+        rankScore,
         status,
         statusLabel,
         hadGapInitially,
@@ -394,6 +531,23 @@ window.SkillPathEngine = (function () {
         coursesInProgress: skillCoursesInProgress,
       };
     });
+
+    // Sort priority-boosted remaining gaps cleanly to the top when HR/org priority weights exist
+    const roadmap = rawRoadmap
+      .slice()
+      .sort((a, b) => {
+        const aGap = a.status !== "strong" ? 1 : 0;
+        const bGap = b.status !== "strong" ? 1 : 0;
+        if (aGap !== bGap) return bGap - aGap;
+        if (aGap === 1 && b.rankScore !== a.rankScore) {
+          return b.rankScore - a.rankScore;
+        }
+        return a.originalIndex - b.originalIndex;
+      })
+      .map((item, idx) => ({
+        ...item,
+        stepNumber: idx + 1,
+      }));
 
     const skillMatchPct =
       totalRequiredPct > 0
@@ -418,7 +572,8 @@ window.SkillPathEngine = (function () {
         ? 0
         : profile.targetRole === "junior_data_analyst" &&
             completedCoursesCount === 0 &&
-            inProgressCoursesCount === 0
+            inProgressCoursesCount === 0 &&
+            Object.keys(verifiedMap).length === 0
           ? 6
           : Math.max(1, Math.ceil(totalRemainingHours / hoursOption.avgHours));
 
@@ -535,6 +690,182 @@ window.SkillPathEngine = (function () {
     };
   }
 
+  function computeAverageLevelLabel(verifiedMap) {
+    const entries = Object.values(verifiedMap || {});
+    if (entries.length === 0) return "Unverified";
+    const avgPct =
+      entries.reduce((acc, item) => acc + getLevelPct(item.level), 0) /
+      entries.length;
+    if (avgPct >= 78) return "Expert";
+    if (avgPct >= 48) return "Intermediate";
+    return "Beginner";
+  }
+
+  function buildCourseSpendForProgress(courseProgress) {
+    const allCourses = Object.values(
+      window.SkillPathData.COURSES_BY_SKILL
+    ).flat();
+    const courseById = Object.fromEntries(allCourses.map((c) => [c.id, c]));
+    let spend = 0;
+    Object.entries(courseProgress || {}).forEach(([cid, status]) => {
+      if (status === "completed" || status === "in_progress") {
+        spend += Number(courseById[cid]?.cost || 0);
+      }
+    });
+    return spend;
+  }
+
+  /**
+   * Build unified employee records (seeded team + active current user) for Manager/HR Dashboard.
+   */
+  function buildOrganizationDataset(state) {
+    const data = window.SkillPathData;
+    const activeState = state || {};
+    const orgPriorities = Array.isArray(activeState.priorities)
+      ? activeState.priorities
+      : data.DEFAULT_ORG_PRIORITIES || [];
+
+    const records = (data.SEED_EMPLOYEES || []).map((emp) => {
+      const pseudoProfile = {
+        name: emp.name,
+        status: "employee",
+        backgroundDetail: data.ROLE_MAP[emp.targetRole]?.name || "Analyst",
+        targetRole: emp.targetRole,
+        companyPriority: emp.companyPriority,
+        companyPriorities: [emp.companyPriority],
+        learningSlotsPerWeek: emp.learningSlotsPerWeek,
+        weeklyHours: emp.weeklyHours,
+        experience: emp.experience,
+        skillScores: emp.selfScores || {},
+      };
+
+      const mergedVerified = {
+        ...(emp.verifiedLevels || {}),
+        ...(activeState.verifiedLevels?.[emp.id] || {}),
+      };
+      const mergedTests = {
+        ...(emp.testResults || {}),
+        ...(activeState.testResults?.[emp.id] || {}),
+      };
+
+      const analysis = analyzeProfile(pseudoProfile, emp.courseProgress || {}, {
+        currentEmployeeId: emp.id,
+        verifiedLevelsOverride: mergedVerified,
+        priorities: orgPriorities,
+      });
+
+      const allAttempts = Object.values(mergedTests).flat();
+      const sortedDates = allAttempts
+        .map((a) => a.date)
+        .filter(Boolean)
+        .sort();
+      const lastTestDate = sortedDates.length
+        ? sortedDates[sortedDates.length - 1].slice(0, 10)
+        : "Not tested";
+
+      const verifiedCount = Object.keys(mergedVerified).length;
+      const avgLevel = computeAverageLevelLabel(mergedVerified);
+      const completionPct = analysis ? analysis.overallCoursePct : 0;
+
+      let status = "On track";
+      if (completionPct < 35 || avgLevel === "Beginner") status = "At risk";
+      else if (completionPct < 65) status = "Behind";
+
+      const spend = buildCourseSpendForProgress(emp.courseProgress);
+
+      return {
+        id: emp.id,
+        name: emp.name,
+        isCurrentUser: false,
+        isSeededDemo: true,
+        team: emp.team,
+        roleId: emp.targetRole,
+        roleName: data.ROLE_MAP[emp.targetRole]?.name || emp.targetRole,
+        verifiedLevels: mergedVerified,
+        testResults: mergedTests,
+        verifiedCount,
+        avgLevel,
+        completionPct,
+        lastTestDate,
+        status,
+        analysis,
+        courseProgress: emp.courseProgress || {},
+        replanHistory: emp.replanHistory || [],
+        spend,
+        levelsGained: emp.levelsGained || 1,
+      };
+    });
+
+    // Include the active user as one row inside Manager's team
+    const currentEmpId = activeState.currentEmployeeId || "emp_current";
+    const activeProfile =
+      activeState.profile || data.DEMO_EMPLOYEE_PROFILE;
+    const currentVerified = activeState.verifiedLevels?.[currentEmpId] || {};
+    const currentTests = activeState.testResults?.[currentEmpId] || {};
+    const currentProgress = activeState.courseProgress || {};
+
+    const currentAnalysis = analyzeProfile(activeProfile, currentProgress, {
+      currentEmployeeId: currentEmpId,
+      verifiedLevelsOverride: currentVerified,
+      priorities: orgPriorities,
+    });
+
+    const userAttempts = Object.values(currentTests).flat();
+    const userDates = userAttempts
+      .map((a) => a.date)
+      .filter(Boolean)
+      .sort();
+    const userLastDate = userDates.length
+      ? userDates[userDates.length - 1].slice(0, 10)
+      : "Not tested";
+    const userVerifiedCount = Object.keys(currentVerified).length;
+    const userAvgLevel = computeAverageLevelLabel(currentVerified);
+    const userCompletionPct = currentAnalysis
+      ? currentAnalysis.overallCoursePct
+      : 0;
+
+    let userStatus = "On track";
+    if (userCompletionPct < 35 && userVerifiedCount === 0) {
+      userStatus = "Behind";
+    } else if (userCompletionPct < 35 || userAvgLevel === "Beginner") {
+      userStatus = "At risk";
+    } else if (userCompletionPct < 65) {
+      userStatus = "Behind";
+    }
+
+    const userLevelsGained =
+      Object.values(currentVerified).filter((v) => v.level !== "Beginner")
+        .length + (currentAnalysis ? currentAnalysis.completedGapSkills.length : 0);
+
+    records.unshift({
+      id: currentEmpId,
+      name: activeProfile.name || "Current Employee",
+      isCurrentUser: true,
+      isSeededDemo: Boolean(activeProfile.isDemo),
+      team: data.MANAGER_TEAM_NAME,
+      roleId: activeProfile.targetRole,
+      roleName:
+        data.ROLE_MAP[activeProfile.targetRole]?.name ||
+        activeProfile.targetRole,
+      verifiedLevels: currentVerified,
+      testResults: currentTests,
+      verifiedCount: userVerifiedCount,
+      avgLevel: userAvgLevel,
+      completionPct: userCompletionPct,
+      lastTestDate: userLastDate,
+      status: userStatus,
+      analysis: currentAnalysis,
+      courseProgress: currentProgress,
+      replanHistory: (activeState.replanHistory || []).filter(
+        (r) => !r.employeeId || r.employeeId === currentEmpId
+      ),
+      spend: buildCourseSpendForProgress(currentProgress),
+      levelsGained: Math.max(1, userLevelsGained),
+    });
+
+    return records;
+  }
+
   /**
    * Calls stateless /api/ai-explain when running on HTTP; falls back smoothly
    * to deterministic template explanations when offline or without an API key.
@@ -550,7 +881,7 @@ window.SkillPathEngine = (function () {
           courseId: c.id,
           title: c.title,
           skillName: step.skillName,
-          currentPct: step.initialPct,
+          currentPct: step.baselinePct,
           targetPct: step.requiredPct,
           isPriorityMatch: step.isPriorityMatch,
         });
@@ -589,7 +920,11 @@ window.SkillPathEngine = (function () {
   }
 
   return {
+    LEVEL_TO_PCT,
+    getLevel,
+    getLevelPct,
     analyzeProfile,
+    buildOrganizationDataset,
     fetchAiExplanations,
     getExperienceOption,
     getWeeklyHoursOption,

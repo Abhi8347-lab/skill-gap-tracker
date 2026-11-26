@@ -52,6 +52,8 @@
 
   const loadDemoBtn = document.getElementById("btn-load-demo-employee");
   const demoGoGapBtn = document.getElementById("btn-demo-go-gap");
+  const verifySkillsTopBtn = document.getElementById("btn-verify-skills-top");
+  const saveAndVerifyBtn = document.getElementById("btn-save-and-verify");
 
   const nameInput = document.getElementById("input-name");
   const statusOptionsEl = document.getElementById("status-options");
@@ -287,6 +289,9 @@
       return;
     }
 
+    const empId = appState.currentEmployeeId || "emp_current";
+    const verifiedMap = appState.verifiedLevels?.[empId] || {};
+
     ratingsListEl.innerHTML = draft.selectedSkills
       .map((skillId) => {
         const skill = Data.SKILL_MAP[skillId];
@@ -298,6 +303,10 @@
         const starVal =
           draft.skillRatings[skillId] ||
           Math.max(1, Math.min(5, Math.round(scorePct / 20)));
+        const ver = verifiedMap[skillId];
+        const verBadge = ver
+          ? `<span class="ver-mini-pill level-${ver.level.toLowerCase()}">Verified ${escapeHtml(ver.level)} (${ver.verifiedPct}%)</span>`
+          : `<span class="ver-mini-pill level-unverified">Unverified</span>`;
 
         const starsHtml = [1, 2, 3, 4, 5]
           .map(
@@ -319,11 +328,18 @@
             <div class="rating-skill-info">
               <span class="rating-skill-name">${escapeHtml(skill.name)}</span>
               <span class="rating-level-badge">${scorePct}% · ${RATING_LABELS[starVal]}</span>
+              ${verBadge}
             </div>
             <div class="rating-controls">
               <div class="star-group" role="group" aria-label="Rating for ${escapeHtml(skill.name)}">
                 ${starsHtml}
               </div>
+              <button
+                type="button"
+                class="btn-ghost-sm btn-diagnostic-inline"
+                data-take-quiz="${escapeHtml(skillId)}"
+                title="Run 5-question diagnostic test for ${escapeHtml(skill.name)}"
+              >${ver ? "Retake test" : "Take diagnostic test"}</button>
               <button
                 type="button"
                 class="rating-remove-btn"
@@ -336,6 +352,16 @@
         `;
       })
       .join("");
+
+    ratingsListEl.querySelectorAll("[data-take-quiz]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const skillId = btn.getAttribute("data-take-quiz");
+        const clean = buildCleanProfile();
+        if (!clean.name) clean.name = "Employee";
+        await Storage.saveProfile(clean);
+        window.location.href = `quiz.html?skill=${encodeURIComponent(skillId)}`;
+      });
+    });
 
     ratingsListEl.querySelectorAll(".star-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -482,6 +508,9 @@
     });
 
     btnPrev.hidden = currentStep === 1;
+    if (saveAndVerifyBtn) {
+      saveAndVerifyBtn.hidden = currentStep !== TOTAL_STEPS;
+    }
     btnNext.textContent =
       currentStep === TOTAL_STEPS ? "Next: Analyze Skill Gap →" : "Next →";
 
@@ -561,6 +590,9 @@
     if (demoGoGapBtn) {
       demoGoGapBtn.hidden = false;
     }
+    if (verifySkillsTopBtn) {
+      verifySkillsTopBtn.hidden = false;
+    }
     Nav.render({
       activePage: "profile",
       state: appState,
@@ -571,6 +603,16 @@
       "success"
     );
   });
+
+  if (saveAndVerifyBtn) {
+    saveAndVerifyBtn.addEventListener("click", async () => {
+      if (!validateStep(1) || !validateStep(2) || !validateStep(4)) {
+        return;
+      }
+      await Storage.saveProfile(buildCleanProfile());
+      window.location.href = "quiz.html";
+    });
+  }
 
   // Bind inputs & events
   nameInput.addEventListener("input", (e) => {
@@ -643,8 +685,9 @@
     state: appState,
     onReset: () => window.location.reload(),
   });
-  if (appState.profile?.isDemo && demoGoGapBtn) {
-    demoGoGapBtn.hidden = false;
+  if (appState.profile) {
+    if (demoGoGapBtn) demoGoGapBtn.hidden = false;
+    if (verifySkillsTopBtn) verifySkillsTopBtn.hidden = false;
   }
   renderAllWizardSections();
   goToStep(1);

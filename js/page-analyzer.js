@@ -90,7 +90,8 @@
 
     const analysis = Engine.analyzeProfile(
       appState.profile,
-      appState.courseProgress
+      appState.courseProgress,
+      appState
     );
     if (!analysis) {
       emptyEl.hidden = false;
@@ -186,6 +187,10 @@
         const priorityChip = item.isPriorityMatch
           ? `<span class="priority-badge">★ Priority: ${escapeHtml(item.matchedPriorities[0])}</span>`
           : "";
+        const verChip = item.isVerified
+          ? `<span class="ver-mini-pill level-${item.verifiedLevel.toLowerCase()}">${escapeHtml(item.comparisonText)}</span>`
+          : `<span class="ver-mini-pill level-unverified">Unverified · Self-rated ${item.selfRatedPct}%</span>`;
+        const quizLink = `<a href="quiz.html?skill=${escapeHtml(item.skillId)}" class="roadmap-quiz-link">${item.isVerified ? "Retake test" : "Take diagnostic test"}</a>`;
         const actionLink =
           item.status === "strong"
             ? `<span class="roadmap-done-note">${item.completedViaCourses ? "Completed via courses ✓" : "Target proficiency met"}</span>`
@@ -207,6 +212,10 @@
                 </div>
                 <span class="status-pill status-${item.status}">${escapeHtml(item.statusLabel)}</span>
               </div>
+              <div class="roadmap-ver-row">
+                ${verChip}
+                ${quizLink}
+              </div>
               <p class="roadmap-why">${escapeHtml(item.why)}</p>
               <div class="roadmap-meter-row">
                 <div class="roadmap-mini-track">
@@ -222,6 +231,35 @@
         `;
       })
       .join("");
+
+    // Render adaptive re-plan history if present
+    const replanCard = document.getElementById("replan-history-card");
+    const replanList = document.getElementById("replan-history-list");
+    const empId = appState.currentEmployeeId || "emp_current";
+    const userReplans = (appState.replanHistory || []).filter(
+      (r) => !r.employeeId || r.employeeId === empId
+    );
+    if (replanCard && replanList) {
+      if (userReplans.length === 0) {
+        replanCard.hidden = true;
+      } else {
+        replanCard.hidden = false;
+        replanList.innerHTML = userReplans
+          .slice(0, 8)
+          .map(
+            (r) => `
+            <div class="replan-entry">
+              <div class="replan-entry-top">
+                <strong>${escapeHtml(r.reason)}</strong>
+                <span class="replan-date">${escapeHtml(String(r.date || "").slice(0, 16).replace("T", " "))}</span>
+              </div>
+              <p>${escapeHtml(r.summary)}</p>
+            </div>
+          `
+          )
+          .join("");
+      }
+    }
 
     document.getElementById("roadmap-cta-note").textContent =
       analysis.remainingSkills.length === 0
